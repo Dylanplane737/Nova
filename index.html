@@ -1,0 +1,1630 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Nova</title>
+        <link rel="icon" href="favicon.png" type="image/x-icon">
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  /* Basic layout */
+  body {
+    font-family: "Pixelify Sans", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    background-color: #2596be;
+    color: white;
+    text-align: center;
+    margin: 32px 12px;
+    transition: background 0.3s ease;
+  }
+  .search-wrap { position: relative; max-width: 560px; margin: 0 auto; }
+  input#urlInput {
+    width: 100%; padding: 12px 16px; font-size: 16px; border-radius: 999px; border: 1px solid rgba(0,0,0,0.1);
+    box-sizing: border-box;
+  }
+  button { margin-top: 12px; padding: 12px 26px; border-radius: 28px; border: none; cursor: pointer; background:#0f75a8; color:white; box-shadow: 0 6px 12px rgba(0,0,0,0.12); }
+  button:hover { transform: translateY(-2px); }
+
+  /* Suggestions */
+  .suggestions { position: absolute; left: 0; right: 0; top: 52px; background: white; color: #222; border-radius: 10px; box-shadow: 0 6px 18px rgba(0,0,0,0.12); z-index: 30; max-height: 240px; overflow:auto; display:none; }
+  .suggestions.show { display:block; }
+  .suggestions div { padding: 8px 12px; cursor:pointer; }
+  .suggestions div:hover, .suggestions .highlighted { background:#0f75a8; color:white; }
+
+  /* Results layout */
+  #resultContainer { display:none; margin-top:28px; max-width:1200px; margin-left:auto; margin-right:auto; gap:20px; justify-content:center; align-items:flex-start; }
+  #resultContainer.visible { display:flex; flex-wrap:wrap; }
+  #wikiSummary, #relatedMedia { background: rgba(0,0,0,0.28); padding:18px; border-radius:12px; box-sizing:border-box; color:white; }
+  #wikiSummary { width: 44%; min-width:260px; text-align:left; max-height:720px; overflow:auto; }
+  #relatedMedia { width: 44%; min-width:260px; display:flex; flex-direction:column; gap:12px; max-height:720px; overflow:auto; }
+  #clac {width: 44%; min-width: 260px; margin-left:auto; margin-right:auto; gap:20px; justify-content:center; align-items:flex-start;}
+
+  #wikiSummary img { width:100%; border-radius:10px; box-shadow: 0 6px 18px rgba(0,0,0,0.25); }
+
+  .media-section { display:flex; gap:8px; flex-wrap:wrap; padding:10px; background:rgba(255,255,255,0.03); border-radius:10px; max-height:320px; overflow:auto; }
+  .media-section img, .media-section video { width:160px; height:110px; object-fit:cover; border-radius:8px; cursor:pointer; box-shadow:0 4px 10px rgba(0,0,0,0.25); transition:transform .12s ease; }
+  .media-section img:hover, .media-section video:hover { transform:scale(1.06); }
+
+  /* Dictionary */
+  #dictionaryContainer { margin:16px auto; width:520px; background:rgba(0,0,0,0.35); border-radius:12px; padding:14px; color:white; text-align:left; display:none; max-height:320px; overflow:auto; }
+  .phonetics { font-style:italic; color:#cfeffb; margin-bottom:8px; }
+  .definition { margin-bottom:12px; }
+
+  /* Timeline */
+  #timelineContainer { margin-top:18px; max-width:900px; margin-left:auto; margin-right:auto; text-align:left; background:rgba(0,0,0,0.18); padding:12px; border-radius:10px; display:none; }
+
+  /* Spinner */
+  .spinner { display:none; margin:20px auto; border:6px solid rgba(255,255,255,0.25); border-top:6px solid white; border-radius:50%; width:52px; height:52px; animation:spin 1s linear infinite; }
+  .spinner.visible { display:block; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  /* Lightbox modal */
+  #lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:1000; align-items:center; justify-content:center; }
+  #lightbox.show { display:flex; }
+  #lightbox img { max-width:92%; max-height:86%; border-radius:10px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
+  #lightbox .close { position:fixed; right:22px; top:18px; color:white; font-size:28px; cursor:pointer; }
+  #lightbox .nav { position:fixed; top:50%; transform:translateY(-50%); font-size:48px; color:rgba(255,255,255,0.9); cursor:pointer; user-select:none; }
+  #lightbox .prev { left:16px; } #lightbox .next { right:16px; }
+
+  /* Timeline list */
+  .timeline-list { display:flex; flex-direction:column; gap:8px; }
+  .timeline-item { background:rgba(255,255,255,0.03); padding:10px; border-radius:8px; }
+  .timeline-year { font-weight:700; color:#a8d0e6; margin-right:8px; }
+
+  /* Matrix canvas (overlay) */
+  canvas#matrixCanvas { position:fixed; inset:0; z-index:1200; pointer-events:none; display:none; }
+
+  /* Responsive */
+  @media (max-width:900px) {
+    #wikiSummary,#relatedMedia { width: 100%; }
+    .media-section img, .media-section video { width:140px; height:100px; }
+  }
+
+</style>
+</head>
+<body>
+  <img src="Novalogo.png" alt="Logo" id="Novalogopng" style="width:200px; height:auto; display:block; margin:20px auto;">
+
+  <main>
+    <section class="search-wrap">
+      <input id="urlInput" placeholder="Search... (e.g. cute cats or google.com)" autocomplete="off" />
+      <div id="suggestionBox" class="suggestions" role="listbox"></div>
+    </section>
+
+   <style>
+      .center-container {
+        text-align: center;
+        padding-top: 10px;
+      }
+
+      /* Styles for the Open button */
+      #openBtn {
+        background-color: #2596be; /*color*/
+        border: none;
+        color: black;
+        padding: 15px 30px; /* Generous padding for better click area */
+        font-size: 16px; /* Larger, more prominent text */
+         cursor: pointer;
+        border-radius: 40px; /* Fully rounded/pill shape */
+        box-shadow: 0 7px 12px rgba(0, 123, 255, 0.3); /* Subtle shadow */
+        transition: all 3.5s ease; /* Smooth transition for all effects */
+        font-weight: bold;
+        outline: none; /* Remove default focus outline */
+      }
+
+      /* Hover effect: change color and lift the button slightly */
+      #openBtn:hover {
+        background-color: #ffff; /* white on hover */
+        box-shadow: 0 6px 20px rgba(0, 123, 255, 0.5); /* Larger, more pronounced shadow */
+        transform: translateY(-8px); /* Lifts the button */
+      }
+         /* Active (click) effect: press the button down */
+      #openBtn:active {
+        transform: translateY(1px); /* Moves button down on click */
+        box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3); /* Smaller shadow to simulate press */
+      }
+    </style>
+</head>
+<body>
+  <div class="center-container">
+      <button id="openBtn" onclick="openWebsite()">Open!</button>
+    </div>
+
+    <div id="loadingSpinner" class="spinner" aria-hidden="true"></div>
+
+    <section id="resultContainer">
+      <article id="wikiSummary"></article>
+      <aside id="relatedMedia">
+        <h3 style="margin-top:0">Related Images!</h3>
+        <div id="imagesSection" class="media-section" aria-live="polite"></div>
+        <h3 style="margin:0 0 6px 0">Related Videos!</h3>
+        <div id="videosSection" class="media-section"></div>
+      </aside>
+    </section>
+
+    <section id="dictionaryContainer"><h3 style="margin-top:0">Dictionary Lookup</h3><div id="dictionaryResults"></div></section>
+
+    <section id="timelineContainer"><h3 style="margin-top:0">Timeline (beta)</h3><div id="timelineList" class="timeline-list"></div></section>
+
+    <!-- Lightbox -->
+    <div id="lightbox" aria-hidden="true">
+      <span class="close" id="closeLightbox" title="Close">&times;</span>
+      <span class="nav prev" id="lightPrev" title="Previous">&#10094;</span>
+      <img id="lightboxImg" alt="Expanded image"/>
+      <span class="nav next" id="lightNext" title="Next">&#10095;</span>
+    </div>
+
+    <!-- Rickroll fallback (hidden until needed) -->
+    <section id="rickrollContainer" style="display:none; margin-top:20px;">
+      <h3>get rickrolled bozo</h3>
+      <img src="Rickroll.gif" alt="Rickroll GIF" style="max-width:520px;border-radius:12px;"/>
+    </section>
+
+    <!-- Matrix canvas overlay -->
+    <canvas id="matrixCanvas"></canvas>
+  </main>
+
+<script>
+
+// State
+let highlightedIndex = -1;
+let debounceTimer;
+let commonsOffset = 0;
+let currentQuery = "";
+let imagesList = []; // track full-size image URLs for lightbox
+let currentLightIndex = -1;
+let matrixState = { running: false, intervalId: null };
+
+// Elements
+const urlInput = document.getElementById("urlInput");
+const suggestionBox = document.getElementById("suggestionBox");
+const spinner = document.getElementById("loadingSpinner");
+const resultContainer = document.getElementById("resultContainer");
+const imagesSection = document.getElementById("imagesSection");
+const videosSection = document.getElementById("videosSection");
+const wikiSummaryEl = document.getElementById("wikiSummary");
+const dictionaryContainer = document.getElementById("dictionaryContainer");
+const dictionaryResults = document.getElementById("dictionaryResults");
+const timelineContainer = document.getElementById("timelineContainer");
+const timelineList = document.getElementById("timelineList");
+const rickrollContainer = document.getElementById("rickrollContainer");
+const lightbox = document.getElementById("lightbox");
+const lightboxImg = document.getElementById("lightboxImg");
+const closeLightbox = document.getElementById("closeLightbox");
+const lightPrev = document.getElementById("lightPrev");
+const lightNext = document.getElementById("lightNext");
+const matrixCanvas = document.getElementById("matrixCanvas");
+const calc = document.getElementById("clac");
+
+// helpers
+function showSpinner(){ spinner.classList.add("visible"); spinner.setAttribute("aria-hidden","false"); }
+function hideSpinner(){ spinner.classList.remove("visible"); spinner.setAttribute("aria-hidden","true"); }
+function formatURL(input){
+  input = input.trim();
+  if (input.startsWith("http://") || input.startsWith("https://")) return input;
+  if (input.includes(".")) return "https://" + input;
+  return input;
+}
+function safeText(s){ return (s || "").toString(); }
+
+// --- Autocomplete (Wikipedia opensearch) ---
+urlInput.addEventListener("input", (e)=>{
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(()=> showSuggestions(e.target.value.trim()), 240);
+});
+async function fetchWikiSuggestions(q){
+  if (!q) return [];
+  const cacheKey = `wiki_suggest_${q}`;
+  const cached = sessionStorage.getItem(cacheKey);
+  if (cached) return JSON.parse(cached);
+  try {
+    const res = await fetch(`https://en.wikipedia.org/w/api.php?action=opensearch&format=json&origin=*&search=${encodeURIComponent(q)}`);
+    if (!res.ok) return [];
+    const j = await res.json();
+    const results = j[1]||[];
+    sessionStorage.setItem(cacheKey, JSON.stringify(results));
+    return results;
+  } catch { return []; }
+}
+async function showSuggestions(input){
+  suggestionBox.innerHTML = ""; highlightedIndex = -1;
+  if (!input) { suggestionBox.classList.remove("show"); return; }
+  const list = await fetchWikiSuggestions(input);
+  if (!list || !list.length) { suggestionBox.classList.remove("show"); return; }
+  list.forEach(item=>{
+    const d = document.createElement("div");
+    d.textContent = item;
+    d.tabIndex = 0;
+    d.onclick = ()=> { urlInput.value = item; suggestionBox.innerHTML=""; suggestionBox.classList.remove("show"); };
+    suggestionBox.appendChild(d);
+  });
+  suggestionBox.classList.add("show");
+}
+urlInput.addEventListener("keydown", (e)=>{
+  const items = suggestionBox.querySelectorAll("div");
+  if (!items.length) return;
+  if (e.key === "ArrowDown"){ e.preventDefault(); highlightedIndex = (highlightedIndex+1)%items.length; updateHighlight(items); }
+  else if (e.key === "ArrowUp"){ e.preventDefault(); highlightedIndex = (highlightedIndex-1+items.length)%items.length; updateHighlight(items); }
+  else if (e.key === "Enter"){ if (highlightedIndex>=0){ e.preventDefault(); urlInput.value = items[highlightedIndex].textContent; suggestionBox.innerHTML=""; suggestionBox.classList.remove("show"); } else { openWebsite(); } }
+  else if (e.key === "Escape"){ suggestionBox.innerHTML=""; suggestionBox.classList.remove("show"); highlightedIndex=-1; }
+});
+function updateHighlight(items){ items.forEach((it,i)=> it.classList.toggle("highlighted", i===highlightedIndex)); }
+
+// --- Wikipedia summary & helpers ---
+async function getWikiSummary(query){
+  try {
+    const res = await fetch(`https://en.wikipedia.org/w/api.php?action=query&origin=*&prop=extracts|pageimages&exintro&explaintext&piprop=thumbnail&pithumbsize=400&format=json&titles=${encodeURIComponent(query)}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const pages = data.query && data.query.pages ? data.query.pages : null;
+    if (!pages) return null;
+    const page = Object.values(pages)[0];
+    if (!page || page.missing) return null;
+    return {
+      title: page.title,
+      extract: page.extract || "",
+      thumbnail: page.thumbnail ? page.thumbnail.source : null,
+      fullurl: `https://en.wikipedia.org/wiki/${encodeURIComponent(page.title)}`
+    };
+  } catch (err) { console.warn("getWikiSummary error", err); return null; }
+}
+
+// --- Wikimedia Commons media ---
+async function getCommonsMedia(query, offset=0){
+  try {
+    const endpoint = `https://commons.wikimedia.org/w/api.php?action=query&origin=*&format=json&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrlimit=20&gsroffset=${offset}&gsrnamespace=6&prop=imageinfo&iiprop=url|mime|thumbmime&iiurlwidth=400`;
+    const res = await fetch(endpoint);
+    if (!res.ok) return { images:[], videos:[] };
+    const data = await res.json();
+    if (!data.query || !data.query.pages) return { images:[], videos:[] };
+    const pages = Object.values(data.query.pages);
+    const images = [], videos = [];
+    for (const p of pages){
+      const info = p.imageinfo && p.imageinfo[0] ? p.imageinfo[0] : null;
+      if (!info) continue;
+      if (info.mime && info.mime.startsWith("image/")) images.push(info.thumburl || info.url);
+      else if (info.mime && info.mime.startsWith("video/")) videos.push(info.url);
+    }
+    return { images, videos };
+  } catch (err) { console.warn("getCommonsMedia error", err); return { images:[], videos:[] }; }
+}
+
+// --- Dictionary ---
+async function getDictionaryDefinition(word){
+  try {
+    const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`);
+    if (!res.ok) return null;
+    const j = await res.json();
+    return j[0] || null;
+  } catch { return null; }
+}
+
+// --- Timeline extractor (robust-ish) ---
+function extractTimelineFromText(text){
+  if (!text) return [];
+  // Normalize paragraphs and split into sentences conservatively
+  const sentences = text.replace(/\r/g," ").split(/(?<=[.?!;])\s+|\n+/);
+  const events = [];
+  const yearRegex = /\b(1[0-9]{3}|20[0-9]{2})\b/g; // years 1000-2099
+  for (const s of sentences){
+    const found = [...s.matchAll(yearRegex)];
+    if (found.length){
+      // choose the first year occurrence for ordering
+      const y = parseInt(found[0][1],10);
+      const clean = s.trim().replace(/[\n\r]+/g," ").replace(/\s{2,}/g," ");
+      events.push({ year: y, text: clean });
+    }
+  }
+  // dedupe by same year+text and sort
+  const unique = [];
+  const seen = new Set();
+  events.sort((a,b)=> a.year - b.year);
+  for (const e of events){
+    const key = `${e.year}||${e.text}`;
+    if (!seen.has(key)) { seen.add(key); unique.push(e); }
+  }
+  return unique;
+}
+function renderTimeline(events){
+  timelineList.innerHTML = "";
+  if (!events.length){ timelineContainer.style.display = "none"; return; }
+  for (const ev of events){
+    const div = document.createElement("div");
+    div.className = "timeline-item";
+    div.innerHTML = `<span class="timeline-year">${ev.year}</span> <span>${escapeHtml(ev.text)}</span>`;
+    timelineList.appendChild(div);
+  }
+  timelineContainer.style.display = "block";
+}
+
+// --- Escape helper for safe insertion (small) ---
+function escapeHtml(text){
+  if (!text) return "";
+  return text.replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'})[c]);
+}
+
+// --- Lightbox gallery ---
+function openLightbox(index){
+  if (index < 0 || index >= imagesList.length) return;
+  currentLightIndex = index;
+  lightboxImg.src = imagesList[index];
+  lightbox.classList.add("show");
+  lightbox.setAttribute("aria-hidden","false");
+}
+function closeLightboxFn(){
+  lightbox.classList.remove("show");
+  lightbox.setAttribute("aria-hidden","true");
+  currentLightIndex = -1;
+}
+function lightNextFn(){
+  if (imagesList.length === 0) return;
+  currentLightIndex = (currentLightIndex + 1) % imagesList.length;
+  lightboxImg.src = imagesList[currentLightIndex];
+}
+function lightPrevFn(){
+  if (imagesList.length === 0) return;
+  currentLightIndex = (currentLightIndex - 1 + imagesList.length) % imagesList.length;
+  lightboxImg.src = imagesList[currentLightIndex];
+}
+closeLightbox.onclick = closeLightboxFn;
+lightNext.onclick = lightNextFn;
+lightPrev.onclick = lightPrevFn;
+document.addEventListener("keydown", (e)=>{
+  if (lightbox.classList.contains("show")){
+    if (e.key === "Escape") closeLightboxFn();
+    if (e.key === "ArrowRight") lightNextFn();
+    if (e.key === "ArrowLeft") lightPrevFn();
+  }
+});
+
+// --- Matrix Easter Egg (overlay canvas) ---
+function startMatrix(){
+  stopMatrix(); // ensure only one
+  const c = matrixCanvas;
+  c.style.display = "block";
+  c.width = window.innerWidth;
+  c.height = window.innerHeight;
+  const ctx = c.getContext("2d");
+  const cols = Math.floor(c.width/10);
+  const ypos = Array(cols).fill(0);
+  ctx.font = "10pt monospace";
+  matrixState.running = true;
+  matrixState.intervalId = setInterval(()=>{
+    ctx.fillStyle = "rgba(0,0,0,0.05)";
+    ctx.fillRect(0,0,c.width,c.height);
+    ctx.fillStyle = "#0F0";
+    for (let i=0;i<cols;i++){
+      const text = String.fromCharCode(0x30A0 + Math.random()*96);
+      ctx.fillText(text, i*10, ypos[i]*10);
+      if (ypos[i]*10 > c.height && Math.random() > 0.975) ypos[i]=0;
+      ypos[i]++;
+    }
+  }, 50);
+  // allow ESC to stop
+  function escStop(e){ if (e.key === "Escape") stopMatrix(); }
+  document.addEventListener("keydown", escStop, { once: true });
+}
+function stopMatrix(){
+  if (matrixState.intervalId) clearInterval(matrixState.intervalId);
+  matrixState.intervalId = null;
+  matrixState.running = false;
+  matrixCanvas.style.display = "none";
+  // clear canvas
+  const ctx = matrixCanvas.getContext && matrixCanvas.getContext("2d");
+  if (ctx) ctx.clearRect(0,0,matrixCanvas.width,matrixCanvas.height);
+}
+
+// --- Easter Eggs dispatcher ---
+function checkEasterEggs(input){
+  const lower = input.trim().toLowerCase();
+  // remove active egg effects when starting a new search
+  stopMatrix();
+  document.body.style.transform = "";
+  document.body.style.backgroundColor = "";
+  document.body.style.color = "";
+  rickrollContainer.style.display = "none";
+
+  if (!lower) return false;
+  if (lower === "rickroll"){ rickrollContainer.style.display = "block"; window.scrollTo({top:0,behavior:"smooth"}); return true; }
+  if (lower === "matrix"){ startMatrix(); return true; }
+  if (lower === "pong"){ window.open("https://sethclydesdale.github.io/browser-pong/","_blank"); return true; }
+  if (lower === "nyancat"){ window.open("https://www.nyan.cat","_blank"); return true; }
+  if (lower === "flip"){ document.body.style.transition = "transform 1.6s"; document.body.style.transform = "rotate(360deg)"; setTimeout(()=>{ document.body.style.transform = ""; }, 1600); return true; }
+  if (lower === "doge"){ imagesSection.innerHTML = '<img src="https://dogecoin.com/assets/img/dogecoin-300.png" style="width:160px;height:160px;object-fit:cover;border-radius:8px"/>'; return true; }
+  if (lower === "Credits"){ imagesSection.innerHTML = '<img src="https://dogecoin.com/assets/img/dogecoin-300.png" style="width:160px;height:160px;object-fit:cover;border-radius:8px"/>'; return true; }
+  return false;
+}
+
+// --- Main openWebsite ---
+async function openWebsite(){
+  const input = urlInput.value.trim();
+  // reset UI & stop any active eggs
+  stopMatrix();
+  suggestionBox.innerHTML = ""; suggestionBox.classList.remove("show");
+  resultContainer.classList.remove("visible");
+  dictionaryContainer.style.display = "none";
+  timelineContainer.style.display = "none";
+  rickrollContainer.style.display = "none";
+  imagesSection.innerHTML = ""; videosSection.innerHTML = ""; imagesList = []; currentLightIndex = -1;
+  commonsOffset = 0;
+  currentQuery = input;
+
+  if (!input) { alert("Please enter something!"); return; }
+  if (checkEasterEggs(input)) return;
+
+  // URL direct open
+  if (input.includes(".") || input.startsWith("http://") || input.startsWith("https://")){
+    window.open(formatURL(input), "_blank");
+    return;
+  }
+
+  showSpinner();
+  try {
+    // 1) Wiki summary
+    const summary = await getWikiSummary(input);
+    if (!summary) { alert("No Wikipedia article found for your query. :()"); return; }
+    wikiSummaryEl.innerHTML = `<h2 style="margin-top:0">${escapeHtml(summary.title)}</h2>
+      ${summary.thumbnail ? `<img src="${summary.thumbnail}" alt="${escapeHtml(summary.title)}">` : ""}
+      <p>${escapeHtml(summary.extract)}</p>
+      <p><a href="${summary.fullurl}" target="_blank" rel="noopener" style="color:#a8d0e6">Read more on Wikipedia</a></p>`;
+
+    // 2) Wikimedia images (first batch)
+    try {
+      await loadMoreImages(); // uses currentQuery
+    } catch (err) { console.warn("loadMoreImages error", err); }
+
+    // 3) videos
+   // --- Combined videos (Commons + PeerTube + Dailymotion)
+videosSection.innerHTML = "<p style='color:#d6eefb'>Loading videos...</p>";
+try {
+  const commonsMedia = await getCommonsMedia(input, 0);
+  const peerTube = await fetchPeerTubeVideos(input, 5);
+  const dailymotion = await fetchDailymotionVideos(input, 5);
+
+  const allVideos = [
+    ...commonsMedia.videos.map(src => ({ embed: src, type: "commons" })),
+    ...peerTube.map(v => ({ embed: v.embed, type: "peertube", title: v.title })),
+    ...dailymotion.map(v => ({ embed: v.embed, type: "dailymotion", title: v.title }))
+  ];
+
+  if (allVideos.length === 0) {
+    videosSection.innerHTML = "<p style='color:#d6eefb'>No related videos found.</p>";
+  } else {
+    videosSection.innerHTML = allVideos.map(v => {
+      if(v.type === "commons") return `<video src="${v.embed}" controls></video>`;
+      else return `<iframe src="${v.embed}" title="${v.title||''}" frameborder="0" allowfullscreen style="width:160px;height:110px;border-radius:8px;"></iframe>`;
+    }).join("");
+  }
+} catch(err){
+  console.warn("Combined videos fetch error", err);
+  videosSection.innerHTML = "<p style='color:#ffd4d4'>Videos unavailable sorry :/ </p>";
+}
+
+    // show results area
+    resultContainer.classList.add("visible");
+
+    // 4) dictionary
+    try {
+      const dict = await getDictionaryDefinition(input);
+      dictionaryResults.innerHTML = "";
+      if (!dict) dictionaryResults.innerHTML = `<p class="errorMsg">No dictionary definition found.</p>`;
+      else {
+        if (dict.phonetics && dict.phonetics.length) dictionaryResults.innerHTML += `<p class="phonetics">Pronunciation: ${escapeHtml(dict.phonetics[0].text||"")}</p>`;
+        dict.meanings.forEach(m=>{
+          dictionaryResults.innerHTML += `<h4 style="margin-bottom:6px">${escapeHtml(m.partOfSpeech)}</h4>`;
+          m.definitions.forEach((d,i)=>{
+            dictionaryResults.innerHTML += `<div class="definition"><strong>${i+1}.</strong> ${escapeHtml(d.definition)}${d.example?`<br><em>Example: ${escapeHtml(d.example)}</em>`:''}</div>`;
+          });
+        });
+      }
+      dictionaryContainer.style.display = "block";
+    } catch (err){ console.warn("dictionary error", err); dictionaryResults.innerHTML = `<p class="errorMsg">Dictionary lookup error.</p>`; dictionaryContainer.style.display="block"; }
+
+// --- PeerTube search (CORS-friendly instance)
+async function fetchPeerTubeVideos(query, limit=5) {
+  try {
+    const instance = "https://framatube.org"; // example instance
+    const res = await fetch(`${instance}/api/v1/videos/search?q=${encodeURIComponent(query)}&count=${limit}`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data && data.data ? data.data.map(v => ({
+      title: v.name,
+      url: v.url,
+      embed: `${instance}/videos/embed/${v.uuid}`,
+      thumbnail: v.thumbnailUrl
+    })) : [];
+  } catch(err) {
+    console.warn("PeerTube fetch error:", err);
+    return [];
+  }
+}
+
+// --- Dailymotion search
+async function fetchDailymotionVideos(query, limit=5){
+  try {
+    const res = await fetch(`https://api.dailymotion.com/videos?search=${encodeURIComponent(query)}&limit=${limit}&fields=title,id,thumbnail_url,url`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.list.map(v => ({
+      title: v.title,
+      url: v.url,
+      embed: `https://www.dailymotion.com/embed/video/${v.id}`,
+      thumbnail: v.thumbnail_url
+    }));
+  } catch(err){
+    console.warn("Dailymotion fetch error:", err);
+    return [];
+  }
+}
+
+    // 6) timeline
+    try {
+      const events = extractTimelineFromText(summary.extract || "");
+      renderTimeline(events);
+    } catch (err) { console.warn("timeline error", err); }
+
+  } catch (err) {
+    console.error("openWebsite error:", err);
+    alert("Something went wrong fetching info.");
+  } finally {
+    hideSpinner();
+  }
+}
+
+// --- loadMoreImages (infinite scroll) ---
+async function loadMoreImages(){
+  if (!currentQuery) return;
+  const { images } = await getCommonsMedia(currentQuery, commonsOffset);
+  commonsOffset += 20;
+  // append images and maintain imagesList (full-size)
+  for (const src of images){
+    const img = document.createElement("img");
+    img.src = src;
+    img.alt = currentQuery;
+    img.loading = "lazy";
+    img.onclick = () => {
+      const idx = imagesList.indexOf(src);
+      openLightbox(idx >= 0 ? idx : (imagesList.push(src)-1));
+    };
+    imagesSection.appendChild(img);
+    imagesList.push(src);
+  }
+}
+
+// infinite scroll for images container
+imagesSection.addEventListener("scroll", async function(){
+  if (this.scrollTop + this.clientHeight >= this.scrollHeight - 30){
+    try { await loadMoreImages(); } catch (err) { console.warn("infinite scroll failed", err); }
+  }
+});
+
+// --- keyboard shortcuts for suggestions & search ---
+document.addEventListener("keydown", (e)=>{
+  if (e.key === "Enter" && document.activeElement === urlInput) { /* handled by input keydown */ }
+});
+
+// Utility: remove active effects on new search via input change
+urlInput.addEventListener("input", ()=> {
+  // stop matrix and transform when user edits
+  stopMatrix();
+  document.body.style.transform = "";
+});
+
+// Make input clickable suggestions disappear on outside click
+document.addEventListener("click", (e)=>{
+  if (!suggestionBox.contains(e.target) && e.target !== urlInput) { suggestionBox.innerHTML=""; suggestionBox.classList.remove("show"); }
+});
+
+// initial focus
+urlInput.focus();
+// ================== Dynamic Audio & Related Searches / Timeline / Shortcuts ==================
+
+// --- Audio Player Box (hidden until search finds audio) ---
+const audioBox = document.createElement("div");
+audioBox.id = "audioBox";
+audioBox.style.cssText = "max-width:560px;margin:12px auto;padding:10px;background:rgba(0,0,0,0.35);border-radius:12px;color:white;text-align:left;display:none;";
+audioBox.innerHTML = `<strong>Audio Player:</strong> <audio id="audioPlayer" controls style="width:100%;margin-top:6px;"></audio>`;
+document.querySelector(".search-wrap").appendChild(audioBox);
+const audioPlayer = document.getElementById("audioPlayer");
+
+// --- Related Searches Dynamic from Wikipedia ---
+const relatedSearchContainer = document.createElement("div");
+relatedSearchContainer.id = "relatedSearches";
+relatedSearchContainer.style.cssText = "max-width:560px;margin:10px auto;color:#d6eefb;text-align:left;";
+document.querySelector(".search-wrap").appendChild(relatedSearchContainer);
+
+async function fetchRelatedSearches(query){
+  if (!query) { relatedSearchContainer.innerHTML=""; return; }
+  try {
+    const res = await fetch(`https://en.wikipedia.org/w/api.php?action=opensearch&format=json&origin=*&search=${encodeURIComponent(query)}`);
+    const j = await res.json();
+    const suggestions = j[1] || [];
+    if (!suggestions.length){ relatedSearchContainer.innerHTML=""; return; }
+    relatedSearchContainer.innerHTML = "<strong>Related Searches:</strong> " + suggestions.map(r => 
+      `<span style="cursor:pointer;text-decoration:underline;margin-right:8px;" onclick="urlInput.value='${r}'; openWebsite();">${r}</span>`).join("");
+  } catch(err){ console.warn("fetchRelatedSearches error", err); relatedSearchContainer.innerHTML=""; }
+}
+
+// --- Fetch Audio Clips from Freesound ---
+async function fetchAudioClips(query) {
+  const apiKey = 'YOUR_API_KEY'; // Replace with your Freesound API key
+  const url = `https://freesound.org/apiv2/search/text/?query=${encodeURIComponent(query)}&token=${apiKey}&fields=results&filter=duration:[0+ TO 30]`; // Adjust filter as needed
+
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    const audioClips = data.results || [];
+
+    if (audioClips.length > 0) {
+      audioPlayer.src = audioClips[0].previews['preview-hq-mp3']; // Use high-quality preview
+      audioBox.style.display = "block";
+      audioPlayer.play().catch(() => console.warn("Audio playback blocked"));
+    } else {
+      audioBox.style.display = "none";
+    }
+  } catch (error) {
+    console.error("Error fetching audio clips:", error);
+    audioBox.style.display = "none";
+  }
+}
+
+// --- Keyboard Shortcuts Enhanced ---
+document.addEventListener("keydown", (e) => {
+  if (document.activeElement !== urlInput) {
+    switch (e.key) {
+      case "F1": alert("F1 Help:\n- Enter query & press Enter/Open\n- T = toggle timeline\n- A = focus/play audio\n- R = rerun related searches\n- ArrowUp/Down = scroll"); break;
+      case "ArrowUp": window.scrollBy(0, -100); break;
+      case "ArrowDown": window.scrollBy(0, 100); break;
+      case "T": toggleTimelineGraph(); break;
+      case "A": audioPlayer.focus(); audioPlayer.play().catch(() => {}); break;
+      case "R": fetchRelatedSearches(urlInput.value); break;
+    }
+  }
+});
+
+// --- Interactive Timeline Graph ---
+const timelineGraphCanvas = document.createElement("canvas");
+timelineGraphCanvas.id = "timelineGraphCanvas";
+timelineGraphCanvas.style.cssText = "position:fixed;bottom:20px;right:20px;width:300px;height:150px;background:rgba(0,0,0,0.25);border-radius:10px;z-index:900;display:none;";
+document.body.appendChild(timelineGraphCanvas);
+
+function toggleTimelineGraph() {
+  const c = timelineGraphCanvas;
+  if (c.style.display === "none" || !c.style.display) {
+    c.style.display = "block";
+    renderTimelineGraph();
+  } else {
+    c.style.display = "none";
+  }
+}
+
+function renderTimelineGraph() {
+  const events = extractTimelineFromText(wikiSummaryEl.innerText || "");
+  const ctx = timelineGraphCanvas.getContext("2d");
+  ctx.clearRect(0, 0, timelineGraphCanvas.width, timelineGraphCanvas.height);
+  if (!events.length) return;
+
+  const maxY = Math.max(...events.map(e => e.year));
+  const minY = Math.min(...events.map(e => e.year));
+  const padding = 20;
+  const w = timelineGraphCanvas.width - padding * 2;
+  const h = timelineGraphCanvas.height - padding * 2;
+
+  events.forEach((ev, i) => {
+    const x = padding + i * (w / events.length);
+    const y = padding + h * (1 - (ev.year - minY) / (maxY - minY));
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, 2 * Math.PI);
+    ctx.fillStyle = "#a8d0e6";
+    ctx.fill();
+    ctx.font = "10px Arial";
+    ctx.fillText(ev.year, x + 6, y + 4);
+  });
+}
+// --- Hook into main search ---
+const originalOpenWebsite2 = openWebsite;
+openWebsite = async function () {
+  await originalOpenWebsite2();
+  fetchAudioClips(urlInput.value);
+  fetchRelatedSearches(urlInput.value);
+};
+// Inject glow style dynamically
+const style = document.createElement("style");
+style.textContent = `
+  input#urlInput:focus {
+    outline: none;
+    box-shadow: 0 0 12px 3px #a8d0e6; /* blue glow */
+    transition: box-shadow 0.3s ease;
+  }
+`;
+document.head.appendChild(style);
+</script>
+<script>
+// Fix for the Open button so URLs and searches always work
+const openBtn = document.getElementById("openBtn");
+
+// Remove any existing onclick just in case
+openBtn.onclick = null;
+
+// Attach the proper click handler
+openBtn.addEventListener("click", openWebsite);
+</script>
+<script>
+document.addEventListener("keydown", function (e) {
+    if (e.ctrlKey && e.key.toLowerCase() === "r") {
+        e.preventDefault(); // stop real page reload
+        resetNovaSettings();
+    }
+});
+
+function resetNovaSettings() {
+    // put whatever your settings reset code is
+    // example: clearing localStorage
+    localStorage.clear();
+
+    alert("Nova settings have been reset!");
+}
+</script>
+<script>
+// --- Save history when navigating ---
+function saveToHistory(url) {
+    let history = JSON.parse(localStorage.getItem("nova_history")) || [];
+    history.push({
+        url: url,
+        time: new Date().toLocaleString()
+    });
+    localStorage.setItem("nova_history", JSON.stringify(history));
+}
+
+// Call this whenever your browser loads a page:
+window.addEventListener("DOMContentLoaded", () => {
+    saveToHistory(window.location.href);
+});
+
+
+// --- Create History Popup ---
+function showHistory() {
+    let history = JSON.parse(localStorage.getItem("nova_history")) || [];
+
+    let popup = document.createElement("div");
+    popup.id = "novaHistoryPopup";
+    popup.style.position = "fixed";
+    popup.style.top = "50%";
+    popup.style.left = "50%";
+    popup.style.transform = "translate(-50%, -50%)";
+    popup.style.width = "60%";
+    popup.style.height = "60%";
+    popup.style.background = "#111";
+    popup.style.color = "white";
+    popup.style.border = "2px solid #555";
+    popup.style.padding = "20px";
+    popup.style.overflowY = "auto";
+    popup.style.zIndex = "10000";
+    popup.style.fontFamily = "monospace";
+
+    let html = "<h2>Your History</h2><hr>";
+    history.forEach(entry => {
+        html += `<p><b>${entry.time}</b> — ${entry.url}</p>`;
+    });
+    html += `<button id='closeNovaHistory' style='margin-top:15px;padding:8px;'>Close</button>`;
+
+    popup.innerHTML = html;
+    document.body.appendChild(popup);
+
+    document.getElementById("closeNovaHistory").onclick = () => {
+        popup.remove();
+    };
+}
+
+
+// --- CTRL + H Listener ---
+document.addEventListener("keydown", function(e) {
+    if (e.ctrlKey && e.key.toLowerCase() === "h") {
+        e.preventDefault();
+        showHistory();
+    }
+});
+</script>
+<script>
+// ===================== NOVA CALCULATOR / GRAPH SYSTEM =====================
+
+// ---- CALC WRAPPER BELOW SEARCH BAR ----
+const calcWrapper = document.createElement("div");
+calcWrapper.id = "Clac";
+calcWrapper.style.cssText = `
+  width: 92%;
+  max-width: 780px;
+  margin: 14px auto;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.95);
+  color: #111;
+  font-family: "Pixelify Sans", monospace;
+  display: none;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.2);
+  position: relative;
+  transition: all 0.25s ease;
+`;
+document.querySelector(".search-container")?.insertAdjacentElement("afterend", calcWrapper);
+
+// ---- INPUT BOX ----
+const calcInput = document.createElement("input");
+calcInput.type = "text";
+calcInput.placeholder = "Type your calculation (supports x for graph)!";
+calcInput.style.cssText = `
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 20px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+  outline: none;
+`;
+calcWrapper.appendChild(calcInput);
+
+// ---- RESULT BOX ----
+const calcResult = document.createElement("div");
+calcResult.style.cssText = `
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 14px;
+  background: #f3f3f3;
+  border-radius: 8px;
+  font-size: 22px;
+  color: #0f75a8;
+  cursor: text;
+`;
+calcWrapper.appendChild(calcResult);
+
+// ---- GRAPH CANVAS ----
+const graphCanvas = document.createElement("canvas");
+graphCanvas.width = 720;
+graphCanvas.height = 360;
+graphCanvas.style.cssText = `
+  width: 100%;
+  margin-top: 16px;
+  background: #0b0b0b;
+  border-radius: 10px;
+  display: none;
+`;
+calcWrapper.appendChild(graphCanvas);
+const gctx = graphCanvas.getContext("2d");
+
+// ===================== UTILITIES =====================
+
+// Fix expressions like "2x" → "2*x"
+function fixExpression(expr){
+  return expr.replace(/(\d)(x)/gi, "$1*$2");
+}
+
+function isSimple(expr){
+  return /^[0-9+\-*/().\s]+$/.test(expr);
+}
+
+function hasVariable(expr){
+  return /x/i.test(expr);
+}
+
+function safeEval(expr){
+  try {
+    return Function(`"use strict"; return (${expr})`)();
+  } catch {
+    return "Error";
+  }
+}
+
+// ===================== GRAPHING =====================
+
+function drawGrid(w, h, scale){
+  gctx.strokeStyle = "rgba(255,255,255,0.1)";
+  gctx.lineWidth = 1;
+
+  for (let x = 0; x <= w; x += scale){
+    gctx.beginPath();
+    gctx.moveTo(x, 0);
+    gctx.lineTo(x, h);
+    gctx.stroke();
+  }
+
+  for (let y = 0; y <= h; y += scale){
+    gctx.beginPath();
+    gctx.moveTo(0, y);
+    gctx.lineTo(w, y);
+    gctx.stroke();
+  }
+}
+
+function drawAxes(w, h, scale){
+  gctx.strokeStyle = "rgba(255,255,255,0.8)";
+  gctx.lineWidth = 2;
+
+  // X axis
+  gctx.beginPath();
+  gctx.moveTo(0, h/2);
+  gctx.lineTo(w, h/2);
+  gctx.stroke();
+
+  // Y axis
+  gctx.beginPath();
+  gctx.moveTo(w/2, 0);
+  gctx.lineTo(w/2, h);
+  gctx.stroke();
+
+  // Labels
+  gctx.fillStyle = "#fff";
+  gctx.font = "12px monospace";
+
+  for (let i = -10; i <= 10; i++){
+    let x = w/2 + i * scale;
+    let y = h/2 - i * scale;
+
+    // X numbers
+    gctx.fillText(i, x + 2, h/2 - 4);
+
+    // Y numbers
+    gctx.fillText(-i, w/2 + 4, y + 4);
+  }
+}
+
+function drawGraph(expr){
+  const w = graphCanvas.width;
+  const h = graphCanvas.height;
+  const scale = w / 20;  // 20 units across (-10 to 10)
+
+  gctx.clearRect(0, 0, w, h);
+
+  // Grid
+  drawGrid(w, h, scale);
+
+  // Axes + labels
+  drawAxes(w, h, scale);
+
+  // Graph line
+  gctx.strokeStyle = "#00c8ff";
+  gctx.lineWidth = 2;
+  gctx.beginPath();
+
+  let first = true;
+
+  for (let px = 0; px <= w; px++){
+    const x = (px - w/2) / scale;
+    let y;
+
+    try {
+      y = safeEval(expr.replace(/x/gi, `(${x})`));
+    } catch {
+      continue;
+    }
+
+    const py = h/2 - y * scale;
+
+    if (first){
+      gctx.moveTo(px, py);
+      first = false;
+    } else {
+      gctx.lineTo(px, py);
+    }
+  }
+
+  gctx.stroke();
+  graphCanvas.style.display = "block";
+}
+
+// ===================== LIVE UPDATE =====================
+
+function updateCalc(){
+  let val = calcInput.value.trim();
+  if (!val){
+    calcResult.textContent = "";
+    graphCanvas.style.display = "none";
+    return;
+  }
+
+  val = fixExpression(val);
+
+  if (isSimple(val) && !hasVariable(val)){
+    calcResult.textContent = `${val} = ${safeEval(val)}`;
+    graphCanvas.style.display = "none";
+    return;
+  }
+
+  if (hasVariable(val)){
+    calcResult.textContent = `y = ${val}`;
+    drawGraph(val);
+    return;
+  }
+
+  calcResult.textContent = `= ${safeEval(val)}`;
+}
+
+calcInput.addEventListener("input", updateCalc);
+calcResult.addEventListener("click", ()=>calcInput.focus());
+
+// ===================== SEARCH HOOK =====================
+
+function checkCalcTrigger(query){
+  const q = query.toLowerCase();
+
+  if (q.match(/[0-9+\-*/().x]/) || q.includes("calc")){
+    calcWrapper.style.display = "block";
+    updateCalc();
+    return true;
+  }
+
+  calcWrapper.style.display = "none";
+  graphCanvas.style.display = "none";
+  return false;
+}
+
+const originalOpen = openWebsite;
+openWebsite = async function(){
+  const val = urlInput.value;
+  const handled = checkCalcTrigger(val);
+  if (!handled){
+    calcWrapper.style.display = "none";
+  }
+  await originalOpen();
+};
+</script>
+<script>
+/* =========================
+   Nova: Dylatosh Maps Embed
+   Drop this script at the BOTTOM of index.html
+   Features:
+   - Detects map/near-me queries
+   - Uses geolocation when needed
+   - Geocodes via Nominatim (OpenStreetMap)
+   - Renders map with Leaflet (added dynamically)
+   - Injects UI into existing results (wikiSummary / relatedMedia)
+   ========================= */
+
+(async function(){
+  // ----- CONFIG -----
+  const NOMINATIM = "https://nominatim.openstreetmap.org";
+  const LEAFLET_CSS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+  const LEAFLET_JS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+  const POI_TYPES = ["coffee","cafe","restaurant","bar","park","museum","hotel","atm","bank","pharmacy"];
+  const MAP_ZOOM_CITY = 12;
+  const MAP_ZOOM_POI = 15;
+
+  // ----- lazy load Leaflet -----
+  async function loadLeaflet(){
+    if (window.L) return Promise.resolve();
+    // CSS
+    if (!document.querySelector(`link[href="${LEAFLET_CSS}"]`)) {
+      const l = document.createElement("link");
+      l.rel = "stylesheet"; l.href = LEAFLET_CSS;
+      document.head.appendChild(l);
+    }
+    // JS
+    if (!document.querySelector(`script[src="${LEAFLET_JS}"]`)) {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = LEAFLET_JS;
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    }
+    return;
+  }
+
+  // ----- helpers -----
+  function isMapIntent(q){
+    if (!q) return false;
+    const s = q.toLowerCase();
+    // explicit map queries: "map", "where is", "where's", "near me", or ending with "map"
+    if (/\b(map|where is|where's|near me|directions|how to get to)\b/.test(s)) return true;
+    // city/country simple heuristics: words like "london", "new york", "germany" often used with map
+    // also check for POI words like "coffee", "restaurant"
+    if (/\b(map)$/.test(s.split(" ").slice(-1)[0])) return true;
+    for (const t of POI_TYPES) if (s.includes(t)) return true;
+    // common "City, Country" pattern (has comma and a word)
+    if (/,/.test(q) && q.trim().split(",").length >= 2) return true;
+    // single-word capitalized place (e.g., "London") - allow but be cautious
+    if (/^[A-Z][a-z]{2,}$/.test(q.trim()) && q.trim().length > 2) return true;
+    return false;
+  }
+
+  function createMapUI(){
+    // Remove existing map area first
+    const existing = document.getElementById("novaMapContainer");
+    if (existing) existing.remove();
+
+    // container similar sizing to your #wikiSummary / #relatedMedia
+    const container = document.createElement("aside");
+    container.id = "novaMapContainer";
+    container.style.width = "44%";
+    container.style.minWidth = "260px";
+    container.style.background = "rgba(0,0,0,0.28)";
+    container.style.padding = "12px";
+    container.style.borderRadius = "12px";
+    container.style.boxSizing = "border-box";
+    container.style.color = "white";
+    container.style.display = "flex";
+    container.style.flexDirection = "column";
+    container.style.gap = "10px";
+
+    const title = document.createElement("h3");
+    title.style.margin = "0";
+    title.textContent = "Map";
+    container.appendChild(title);
+
+    const mapWrapper = document.createElement("div");
+    mapWrapper.id = "novaMapWrapper";
+    mapWrapper.style.height = "360px";
+    mapWrapper.style.borderRadius = "8px";
+    mapWrapper.style.overflow = "hidden";
+    mapWrapper.style.background = "#0b1220";
+    container.appendChild(mapWrapper);
+
+    const list = document.createElement("div");
+    list.id = "novaMapResults";
+    list.style.maxHeight = "180px";
+    list.style.overflow = "auto";
+    list.style.fontSize = "13px";
+    list.style.color = "#d6eefb";
+    container.appendChild(list);
+
+    // insert into resultContainer: after wikiSummary, alongside relatedMedia
+    const resultContainer = document.getElementById("resultContainer");
+    if (!resultContainer) {
+      // fallback: append to main
+      document.querySelector("main").appendChild(container);
+    } else {
+      // put it as the third column, but if there's already an aside (relatedMedia), append
+      resultContainer.classList.add("visible");
+      // try to append near relatedMedia
+      const related = document.getElementById("relatedMedia");
+      if (related && related.parentElement === resultContainer) {
+        resultContainer.insertBefore(container, related.nextSibling);
+      } else {
+        resultContainer.appendChild(container);
+      }
+    }
+    return { container, mapWrapper, list };
+  }
+
+  function buildOSMLink(lat, lon){
+    return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=18/${lat}/${lon}`;
+  }
+
+  // ----- geocoding (Nominatim) -----
+  async function geocode(query, limit=6){
+    const url = `${NOMINATIM}/search?format=json&addressdetails=1&q=${encodeURIComponent(query)}&limit=${limit}&accept-language=en`;
+    const res = await fetch(url, { headers: { "User-Agent": "Nova-Dylatosh-Map/1.0 (contact: none)" }});
+    if (!res.ok) return [];
+    return res.json();
+  }
+
+  // ----- search POIs near coords using bbox via Nominatim -----
+  async function searchPOIsNear(lat, lon, term="coffee", radiusMeters=2000, limit=10){
+    // approximate bbox (degrees). 1 degree lat ~111km. Use radiusMeters -> deg ~ radius / 111000
+    const delta = Math.max(0.005, (radiusMeters/111000)); // fallback small box if small radius
+    const left = lon - delta;
+    const right = lon + delta;
+    const top = lat + delta;
+    const bottom = lat - delta;
+    const viewbox = `${left},${top},${right},${bottom}`; // left, top, right, bottom for nominatim parameter
+    const url = `${NOMINATIM}/search?format=json&addressdetails=1&q=${encodeURIComponent(term)}&limit=${limit}&viewbox=${encodeURIComponent(viewbox)}&bounded=1&accept-language=en`;
+    try {
+      const res = await fetch(url, { headers: { "User-Agent": "Nova-Dylatosh-Map/1.0 (contact: none)" }});
+      if (!res.ok) return [];
+      return res.json();
+    } catch(err){ console.warn("POI search fail", err); return []; }
+  }
+
+  // ----- main entry: handle query and render map -----
+  async function showMapForQuery(rawQuery){
+    if (!rawQuery) return;
+    if (!isMapIntent(rawQuery)) return;
+
+    await loadLeaflet().catch(err => {
+      console.warn("Leaflet load failed", err);
+    });
+
+    const q = rawQuery.trim();
+    const { container, mapWrapper, list } = createMapUI();
+
+    list.innerHTML = "<em style='color:#cfeffb'>Searching map…</em>";
+
+    // If query contains 'near me' or is "coffee near me" -> use geolocation
+    if (/\bnear me\b/i.test(q)){
+      // identify POI term (e.g., "coffee shops near me")
+      const foundPOI = POI_TYPES.find(t => q.toLowerCase().includes(t)) || null;
+
+      if (!navigator.geolocation) {
+        list.innerHTML = "<div>Geolocation not available in this browser.</div>";
+        return;
+      }
+
+      // request location
+      list.innerHTML = "<div>Requesting your location…</div>";
+      navigator.geolocation.getCurrentPosition(async (pos) => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+
+        // center map on user
+        const map = L.map(mapWrapper, { zoomControl: true }).setView([lat, lon], MAP_ZOOM_POI);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+        L.marker([lat, lon]).addTo(map).bindPopup("You are here").openPopup();
+
+        if (foundPOI) {
+          list.innerHTML = `<div style="margin-bottom:6px">Searching for <strong>${foundPOI}</strong> near you…</div>`;
+          const pois = await searchPOIsNear(lat, lon, foundPOI, 2500, 12);
+          if (!pois || !pois.length) {
+            list.innerHTML += "<div>No nearby results found.</div>";
+            return;
+          }
+          renderPOIResults(map, pois, list);
+        } else {
+          list.innerHTML = `<div>Centered at your location (lat:${lat.toFixed(4)}, lon:${lon.toFixed(4)}). Use a query like \"coffee near me\" to find places nearby.</div>`;
+        }
+      }, (err) => {
+        list.innerHTML = "<div>Location permission denied or unavailable.</div>";
+      }, { enableHighAccuracy: false, timeout: 8000 });
+      return;
+    }
+
+    // If not "near me", try to geocode the query directly
+    list.innerHTML = "<div>Geocoding query…</div>";
+    const results = await geocode(q, 10).catch(()=>[]);
+    if (!results || results.length === 0){
+      list.innerHTML = "<div>No map results found.</div>";
+      return;
+    }
+    // Use first result to center
+    const primary = results[0];
+    const lat = parseFloat(primary.lat);
+    const lon = parseFloat(primary.lon);
+
+    const map = L.map(mapWrapper, { zoomControl: true }).setView([lat, lon], MAP_ZOOM_CITY);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+    // add markers for top results
+    const markers = [];
+    results.forEach((r, i) => {
+      const m = L.marker([parseFloat(r.lat), parseFloat(r.lon)]).addTo(map);
+      const name = r.display_name || (r.address ? Object.values(r.address).join(", ") : "Place");
+      m.bindPopup(`<strong>${escapeHtml(name)}</strong><br/><a href="${buildOSMLink(r.lat,r.lon)}" target="_blank" rel="noopener">Open in OSM</a>`);
+      markers.push({ marker: m, info: r });
+    });
+
+    // Build results list
+    renderSearchResultsList(markers, list, map);
+
+    // If the query looked like a POI search (contains coffee/park etc.), also try to show nearby POIs in that area
+    const foundPOI = POI_TYPES.find(t => q.toLowerCase().includes(t)) || null;
+    if (foundPOI){
+      const pois = await searchPOIsNear(lat, lon, foundPOI, 2000, 12);
+      if (pois && pois.length){
+        list.innerHTML += `<hr style="border-color: rgba(200,240,255,0.05); margin:8px 0;"><div style="margin-bottom:6px;color:#cfeffb">Nearby ${foundPOI}:</div>`;
+        renderPOIResults(map, pois, list, true);
+      }
+    }
+  }
+
+  // ----- helpers for rendering lists -----
+  function renderSearchResultsList(markers, listEl, map){
+    listEl.innerHTML = "";
+    markers.forEach((mObj, i) => {
+      const r = mObj.info;
+      const row = document.createElement("div");
+      row.style.padding = "8px 6px";
+      row.style.borderRadius = "6px";
+      row.style.cursor = "pointer";
+      row.style.display = "flex";
+      row.style.justifyContent = "space-between";
+      row.style.alignItems = "center";
+      row.onmouseover = () => mObj.marker.openPopup();
+      row.onmouseout = () => mObj.marker.closePopup();
+      row.onclick = () => {
+        map.setView([parseFloat(r.lat), parseFloat(r.lon)], MAP_ZOOM_POI);
+        mObj.marker.openPopup();
+      };
+
+      const left = document.createElement("div");
+      left.style.flex = "1";
+      left.innerHTML = `<div style="font-weight:700;color:#d6eefb">${escapeHtml(r.display_name.split(",")[0]||r.display_name)}</div>
+                        <div style="font-size:12px;color:#9fdff6">${escapeHtml(r.display_name.split(",").slice(1).join(", "))}</div>`;
+      const right = document.createElement("div");
+      right.innerHTML = `<a href="${buildOSMLink(r.lat,r.lon)}" target="_blank" rel="noopener" style="color:#a8d0e6;font-size:12px">OSM</a>`;
+
+      row.appendChild(left);
+      row.appendChild(right);
+      listEl.appendChild(row);
+    });
+  }
+
+  function renderPOIResults(map, pois, listEl, append=false){
+    if (!append) listEl.innerHTML = "";
+    pois.forEach((p) => {
+      const lat = parseFloat(p.lat), lon = parseFloat(p.lon);
+      const name = p.display_name || (p.address ? Object.values(p.address).join(", ") : "Place");
+      const marker = L.marker([lat, lon]).addTo(map);
+      marker.bindPopup(`<strong>${escapeHtml(name.split(",")[0])}</strong><br/><a href="${buildOSMLink(lat,lon)}" target="_blank" rel="noopener">Open in OSM</a>`);
+      const row = document.createElement("div");
+      row.style.padding = "6px 6px";
+      row.style.borderRadius = "6px";
+      row.style.cursor = "pointer";
+      row.style.marginBottom = "6px";
+      row.style.background = "rgba(255,255,255,0.02)";
+      row.onclick = () => { map.setView([lat,lon], MAP_ZOOM_POI); marker.openPopup(); };
+      row.innerHTML = `<div style="font-weight:700;color:#d6eefb">${escapeHtml(name.split(",")[0])}</div>
+                       <div style="font-size:12px;color:#9fdff6">${escapeHtml(name.split(",").slice(1).join(", "))}</div>`;
+      listEl.appendChild(row);
+    });
+  }
+
+  function escapeHtml(text){
+    if (!text) return "";
+    return text.replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'})[c]);
+  }
+
+  // ----- wire into Nova search flow -----
+  // Use your existing #urlInput as primary entry point
+  const urlInput = document.getElementById("urlInput");
+  if (!urlInput) return;
+
+  // on Open / Enter we already run openWebsite in your page.
+  // We'll observe changes to the query and call showMapForQuery when appropriate.
+  // If openWebsite is accessible, we also call map logic right after it runs by monkey-patching it.
+  function tryAttachToOpen(){
+    if (typeof openWebsite === "function"){
+      const original = openWebsite;
+      openWebsite = async function(){
+  try { await original(); } catch(e){ console.warn("openWebsite error", e); }
+  try { await showMapForQuery(urlInput.value || ""); } catch(e){ console.warn("showMapForQuery error", e); }
+
+  // --- stop snow when user searches ---
+  stopSnow();
+};
+      };
+      return true;
+    }
+    return false;
+  }
+
+  // try attach now, otherwise fallback to listening for Enter/click
+  if (!tryAttachToOpen()){
+    // fallback: on Enter in input or when openBtn clicked
+    urlInput.addEventListener("keydown", (e)=>{
+      if (e.key === "Enter") setTimeout(()=> showMapForQuery(urlInput.value || ""), 120);
+    });
+    const openBtn = document.getElementById("openBtn");
+    if (openBtn) openBtn.addEventListener("click", ()=> setTimeout(()=> showMapForQuery(urlInput.value || ""), 120));
+  }
+
+  // Also show small hint in relatedSearches when a map intent is detected
+  const relatedSearchContainer = document.getElementById("relatedSearches");
+  urlInput.addEventListener("input", () => {
+    const q = urlInput.value || "";
+    if (isMapIntent(q) && relatedSearchContainer){
+      relatedSearchContainer.innerHTML = `<strong>Map shortcut:</strong> Press Open or Enter to show map results for "<em>${escapeHtml(q)}</em>"`;
+    } else if (relatedSearchContainer){
+      // leave current content or clear if blank
+    }
+  });
+
+})(); 
+</script>
+<script>
+// === NOVA Winter Update Script (Easy January Removal) ===
+// Features: Snowfall on load, greeting popup, Xmas Easter Egg, Snowflake spinner
+// Logo element: <img id="logo" src="nova.png">
+
+(function(){
+  const DECEMBER = 11; // JS month index for December
+  const now = new Date();
+
+let snowFadeInterval = null;
+let snowRunning = false;
+
+function startSnow() {
+  if (snowRunning) return; // prevent duplicates
+  snowRunning = true;
+
+  const canvas = document.createElement('canvas');
+  canvas.id = 'novaSnowCanvas';
+  canvas.style.position = 'fixed';
+  canvas.style.top = '0';
+  canvas.style.left = '0';
+  canvas.style.pointerEvents = 'none';
+  canvas.style.width = '100%';
+  canvas.style.height = '100%';
+  canvas.style.zIndex = '9999';
+  canvas.style.opacity = '1';
+  document.body.appendChild(canvas);
+
+  const ctx = canvas.getContext('2d');
+  let flakes = [];
+  let w, h;
+
+  function resize() {
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  for (let i = 0; i < 75; i++) {
+    flakes.push({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      r: Math.random() * 3 + 1,
+      s: Math.random() * 1 + 0.5
+    });
+  }
+
+  function animate() {
+    if (!snowRunning) return; // stop animation instantly when fading
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = "white";
+    ctx.shadowBlur = 5;
+    ctx.shadowColor = "white";
+
+    flakes.forEach(f => {
+      ctx.beginPath();
+      ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+      ctx.fill();
+
+      f.y += f.s;
+      if (f.y > h) f.y = -5;
+    });
+
+    requestAnimationFrame(animate);
+  }
+
+  animate();
+}
+
+// call this when user searches
+function stopSnow() {
+  const canvas = document.getElementById('novaSnowCanvas');
+  if (!canvas) return;
+
+  snowRunning = false; // stop animation loop
+
+  let opacity = 1;
+  snowFadeInterval = setInterval(() => {
+    opacity -= 0.03;
+    canvas.style.opacity = opacity;
+
+    if (opacity <= 0) {
+      clearInterval(snowFadeInterval);
+      canvas.remove();
+    }
+  }, 30);
+}
+
+  // --- 2. Holiday Greeting (first time this December) ---
+  function holidayGreeting(){
+    if(now.getMonth() !== DECEMBER) return;
+    if(localStorage.getItem('novaHolidaySeen2025')) return;
+
+    const box = document.createElement('div');
+    box.innerText = "Happy Holidays from Nova!";
+    box.style.position = 'fixed';
+    box.style.top = '20%';
+    box.style.left = '50%';
+    box.style.transform = 'translateX(-50%)';
+    box.style.padding = '20px 30px';
+    box.style.background = 'rgba(0,0,0,0.7)';
+    box.style.color = 'white';
+    box.style.fontSize = '28px';
+    box.style.borderRadius = '12px';
+    box.style.zIndex = '10000';
+    box.style.opacity = '0';
+    box.style.transition = 'opacity 1s';
+    document.body.appendChild(box);
+
+    setTimeout(()=> box.style.opacity = '1', 100);
+    setTimeout(()=> box.style.opacity = '0', 3000);
+    setTimeout(()=> box.remove(), 4000);
+
+    localStorage.setItem('novaHolidaySeen2025','yes');
+  }
+
+  // --- 3. Xmas Mode Easter Egg ---
+  function setupChristmasEasterEgg(){
+    const input = document.querySelector('input[type="text"], #searchInput, #query');
+    if(!input) return;
+
+    input.addEventListener('input', ()=>{
+      const v = input.value.toLowerCase();
+      if(v.includes('christmas') || v.includes('xmas') || v.includes('santa')){
+        runChristmasMode();
+      }
+    });
+  }
+
+  function runChristmasMode(){
+    // Prevent spam trigger
+    if(window._novaXmasActive) return;
+    window._novaXmasActive = true;
+    setTimeout(()=> window._novaXmasActive = false, 15000);
+
+    // Santa hat on logo
+    const logo = document.getElementById('logo');
+    if(logo){
+      logo.style.transition = 'transform 0.3s';
+
+      const hat = document.createElement('img');
+      hat.src = 'santahat.png'; // You must add this img
+      hat.id = 'novaSantaHat';
+      hat.style.position = 'absolute';
+      hat.style.width = '60px';
+      hat.style.top = '-20px';
+      hat.style.left = '-10px';
+      hat.style.zIndex = '20000';
+      hat.style.pointerEvents = 'none';
+
+      logo.style.position = 'relative';
+      logo.parentElement.style.position = 'relative';
+      logo.parentElement.appendChild(hat);
+
+      setTimeout(()=> hat.remove(), 10000);
+    }
+
+    // Floating Xmas text
+    const msg = document.createElement('div');
+    msg.innerText = "Merry Christmas 2025 from Nova!";
+    msg.style.position = 'fixed';
+    msg.style.bottom = '20%';
+    msg.style.left = '50%';
+    msg.style.transform = 'translateX(-50%)';
+    msg.style.padding = '12px 18px';
+    msg.style.background = 'rgba(0,0,0,0.65)';
+    msg.style.color = 'white';
+    msg.style.fontSize = '24px';
+    msg.style.borderRadius = '10px';
+    msg.style.zIndex = '11000';
+    msg.style.opacity = '0';
+    msg.style.transition = 'opacity 1s';
+    document.body.appendChild(msg);
+
+    setTimeout(()=> msg.style.opacity = '1', 200);
+    setTimeout(()=> msg.style.opacity = '0', 10000);
+    setTimeout(()=> msg.remove(), 11000);
+  }
+
+  // --- 4. Snowflake Loading Spinner ---
+  function applySnowSpinner(){
+    const spinner = document.getElementById('loading-spinner');
+    if(!spinner) return;
+
+    spinner.innerHTML = `
+      <div style="
+        width:40px;
+        height:40px;
+        border-radius:50%;
+        border:4px solid white;
+        border-top-color: transparent;
+        animation: spin 1s linear infinite;
+      "></div>
+    `;
+  }
+
+  // Add keyframes
+  const style = document.createElement('style');
+  style.innerHTML = `@keyframes spin {from{transform:rotate(0);} to{transform:rotate(360deg);} }`;
+  document.head.appendChild(style);
+
+  // --- RUN ALL FEATURES ---
+  window.addEventListener('load', ()=>{
+    startSnow();
+    holidayGreeting();
+    setupChristmasEasterEgg();
+    applySnowSpinner();
+  });
+
+})();
+</script>
+<script src="Main.js"></script>
+<script src="DEV.html"></script>
+</body>
+</html>
