@@ -81,22 +81,24 @@
 /* App bar container (thinner, longer, lower) */
 .nova-appsbar {
   position: fixed;
-  left: ${CONFIG.sizes.gapFromEdge}px;
-  bottom: ${CONFIG.sizes.gapFromEdge}px;
-  width: var(--nova-bar-width);
-  height: var(--nova-bar-height);
+  left: 0;
+  bottom: 0;            /* flush with bottom */
+  width: 100%;          /* full width of screen */
+  height: 48px;         /* slimmer bar */
   background: var(--nova-lightbar);
-  border-radius: 14px 36px 36px 14px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.16);
+  border-radius: 0;     /* remove floating corners */
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12); /* subtle shadow */
   display: flex;
   align-items: center;
-  padding: 6px 10px;
-  gap: 10px;
+  padding: 0 12px;
+  gap: 12px;
   z-index: 9999;
   user-select: none;
   transform: translateZ(0);
   backdrop-filter: blur(6px);
   font-family: var(--nova-font);
+}
+
 }
 
 /* Left system area */
@@ -157,9 +159,11 @@
 /* Tool panel base (slightly shifted to align with longer bar) */
 .nova-tool {
   position: fixed;
-  left: ${CONFIG.sizes.gapFromEdge + 8}px;
-  bottom: calc(${CONFIG.sizes.gapFromEdge}px + ${CONFIG.sizes.barHeight}px + 10px);
-  width: var(--nova-tool-width);
+  left: 0;             /* optional: align left edge */
+  right: 0;            /* optional: align right edge */
+  bottom: 48px;        /* sit just above the bar */
+  width: auto;         /* stretch full width or keep max-width */
+  max-width: var(--nova-tool-width);
   height: var(--nova-tool-height);
   background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
   border-radius: 12px;
