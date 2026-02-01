@@ -1,6 +1,6 @@
 /* Appsbar.js
-   Nova tool dock — drop-in script
-   - Creates a bottom-left fixed app bar (not full width)
+   Nova tool dock — updated: thinner, lower, longer
+   - Bottom-left fixed app bar (not full width)
    - Tools slide up from the bar and never replace search
    - Nova Translate implemented
    - Clock & Timers stored in localStorage
@@ -8,7 +8,7 @@
 */
 
 (function () {
-  // CONFIG
+  // CONFIG (adjusted: thinner, lower, longer)
   const CONFIG = {
     colors: {
       primaryBg: '#2596be',
@@ -21,14 +21,14 @@
       lightBar: 'rgba(255,255,255,0.98)'
     },
     sizes: {
-      barWidth: 420,
-      barHeight: 64,
-      toolWidth: 420,
+      barWidth: 720,        // longer
+      barHeight: 48,        // thinner
+      toolWidth: 520,
       toolHeight: 360,
-      gapFromEdge: 28
+      gapFromEdge: 12       // lower (closer to bottom)
     },
     animation: {
-      duration: 420, // ms
+      duration: 420,
       easing: 'cubic-bezier(.2,.9,.25,1)'
     },
     fonts: {
@@ -78,7 +78,7 @@
   --nova-mono: ${CONFIG.fonts.mono};
 }
 
-/* App bar container */
+/* App bar container (thinner, longer, lower) */
 .nova-appsbar {
   position: fixed;
   left: ${CONFIG.sizes.gapFromEdge}px;
@@ -86,12 +86,12 @@
   width: var(--nova-bar-width);
   height: var(--nova-bar-height);
   background: var(--nova-lightbar);
-  border-radius: 18px 36px 36px 18px;
-  box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+  border-radius: 14px 36px 36px 14px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.16);
   display: flex;
   align-items: center;
-  padding: 8px 12px;
-  gap: 12px;
+  padding: 6px 10px;
+  gap: 10px;
   z-index: 9999;
   user-select: none;
   transform: translateZ(0);
@@ -103,61 +103,62 @@
 .nova-left {
   display:flex;
   align-items:center;
-  gap:10px;
+  gap:8px;
   margin-right: 6px;
   color: #333;
-  min-width: 120px;
+  min-width: 110px;
 }
 .nova-clock {
   display:flex;
   flex-direction:column;
-  gap:2px;
+  gap:1px;
   align-items:flex-start;
   cursor:pointer;
 }
 .nova-clock .time {
   font-weight:700;
   color: var(--nova-primary-bg);
-  font-size: 14px;
+  font-size: 13px;
 }
 .nova-clock .date {
-  font-size: 11px;
+  font-size: 10px;
   color: #666;
 }
 
-/* Icon dock */
+/* Icon dock (icons smaller to match thinner bar) */
 .nova-dock {
   display:flex;
   align-items:center;
   gap:10px;
-  padding: 6px 8px;
+  padding: 4px 6px;
   flex: 1 1 auto;
 }
 .nova-icon {
-  width:44px;
-  height:44px;
+  width:36px;
+  height:36px;
   border-radius: 999px;
   display:flex;
   align-items:center;
   justify-content:center;
   background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.85));
-  box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.10);
   cursor:pointer;
   transition: transform var(--nova-duration) var(--nova-ease), box-shadow var(--nova-duration) var(--nova-ease), background 220ms;
   border: 1px solid rgba(0,0,0,0.06);
+  font-size: 14px;
 }
-.nova-icon:hover { transform: translateY(-6px); }
+.nova-icon:hover { transform: translateY(-5px); }
 .nova-icon.active {
   background: var(--nova-primary-bg);
   color: var(--nova-text);
   box-shadow: 0 10px 24px rgba(0,0,0,0.22);
 }
 
-/* Tool panel base */
+/* Tool panel base (slightly shifted to align with longer bar) */
 .nova-tool {
   position: fixed;
   left: ${CONFIG.sizes.gapFromEdge + 8}px;
-  bottom: calc(${CONFIG.sizes.gapFromEdge}px + ${CONFIG.sizes.barHeight}px + 12px);
+  bottom: calc(${CONFIG.sizes.gapFromEdge}px + ${CONFIG.sizes.barHeight}px + 10px);
   width: var(--nova-tool-width);
   height: var(--nova-tool-height);
   background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
@@ -187,7 +188,7 @@
   display:flex;
   align-items:center;
   justify-content:space-between;
-  padding: 12px 14px;
+  padding: 10px 12px;
   gap:8px;
   border-bottom: 1px solid rgba(255,255,255,0.03);
 }
@@ -199,7 +200,7 @@
 .nova-tool .title h4 {
   margin:0;
   color: var(--nova-heading);
-  font-size: 15px;
+  font-size: 14px;
   font-weight:700;
 }
 .nova-tool .controls {
@@ -225,10 +226,10 @@
 
 /* Tool body */
 .nova-tool .body {
-  padding: 14px;
+  padding: 12px;
   display:flex;
   flex-direction:column;
-  gap:12px;
+  gap:10px;
   flex:1 1 auto;
   overflow:auto;
 }
@@ -237,7 +238,7 @@
 .nova-translate {
   display:flex;
   flex-direction:column;
-  gap:10px;
+  gap:8px;
 }
 .nova-translate .row {
   display:flex;
@@ -245,10 +246,10 @@
 }
 .nova-translate textarea {
   width:100%;
-  min-height:90px;
+  min-height:84px;
   resize:vertical;
-  border-radius: 12px;
-  padding:10px 12px;
+  border-radius: 10px;
+  padding:8px 10px;
   border: none;
   background: rgba(0,0,0,0.35);
   color: var(--nova-text);
@@ -262,8 +263,8 @@
   align-items:center;
 }
 .nova-translate select {
-  border-radius: 12px;
-  padding:8px 10px;
+  border-radius: 10px;
+  padding:6px 8px;
   background: rgba(255,255,255,0.02);
   color: var(--nova-text);
   border: 1px solid rgba(255,255,255,0.03);
@@ -272,13 +273,13 @@
 /* Clock panel */
 .nova-clock-panel {
   width: 320px;
-  padding: 12px;
+  padding: 10px;
   background: linear-gradient(180deg, rgba(0,0,0,0.6), rgba(0,0,0,0.5));
   color: var(--nova-text);
   border-radius: 10px;
   box-shadow: 0 10px 24px rgba(0,0,0,0.36);
 }
-.nova-clock-panel h5 { margin:0 0 8px 0; color: var(--nova-heading); }
+.nova-clock-panel h5 { margin:0 0 6px 0; color: var(--nova-heading); }
 .nova-timers { display:flex; flex-direction:column; gap:8px; max-height:220px; overflow:auto; }
 .nova-timer {
   display:flex;
@@ -296,7 +297,7 @@
 /* Small responsive adjustments */
 @media (max-width: 720px) {
   :root { --nova-tool-width: calc(100% - 56px); }
-  .nova-appsbar { left: 12px; right: 12px; width: auto; border-radius: 14px; }
+  .nova-appsbar { left: 12px; right: 12px; width: auto; border-radius: 12px; bottom: 10px; }
   .nova-tool { left: 12px; right: 12px; width: auto; }
 }
 `;
@@ -318,8 +319,8 @@
     clock.appendChild(dateEl);
 
     const batteryWrap = create('div', { class: 'nova-battery', id: 'nova-battery' });
-    batteryWrap.innerHTML = `<svg width="36" height="18" viewBox="0 0 36 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="1" y="3" width="28" height="12" rx="2" stroke="#cfdde6" stroke-width="1.6" fill="none"/>
+    batteryWrap.innerHTML = `<svg width="32" height="16" viewBox="0 0 36 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="1" y="3" width="28" height="12" rx="2" stroke="#cfdde6" stroke-width="1.4" fill="none"/>
       <rect x="30" y="6" width="4" height="6" rx="1" fill="#cfdde6"/>
       <rect x="3" y="5" width="22" height="8" rx="1" fill="#cfdde6" id="nova-batt-fill"/>
     </svg>`;
@@ -329,18 +330,18 @@
     // Dock icons
     const dock = create('div', { class: 'nova-dock' });
 
-    // Icon factory
-    function iconSVG(label) {
-      return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    // Icon factory (small placeholders)
+    function iconSVG() {
+      return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <rect x="3" y="3" width="18" height="18" rx="4" fill="currentColor" />
       </svg>`;
     }
 
     const tools = [
-      { id: 'nova-translate', title: 'Nova Translate', svg: iconSVG('translate') },
-      { id: 'nova-calculator', title: 'Calculator', svg: iconSVG('calc') },
-      { id: 'nova-dictionary', title: 'Dictionary', svg: iconSVG('dict') },
-      { id: 'nova-clocktool', title: 'Clock & Timers', svg: iconSVG('clock') }
+      { id: 'nova-translate', title: 'Nova Translate', svg: iconSVG() },
+      { id: 'nova-calculator', title: 'Calculator', svg: iconSVG() },
+      { id: 'nova-dictionary', title: 'Dictionary', svg: iconSVG() },
+      { id: 'nova-clocktool', title: 'Clock & Timers', svg: iconSVG() }
     ];
 
     tools.forEach(t => {
@@ -355,8 +356,8 @@
 
     // Event listeners
     dock.addEventListener('click', onDockClick);
-    clock.addEventListener('click', () => toggleTool('clock-panel'));
-    clock.addEventListener('keydown', (e) => { if (e.key === 'Enter') toggleTool('clock-panel'); });
+    clock.addEventListener('click', () => toggleTool('tool-clock-panel'));
+    clock.addEventListener('keydown', (e) => { if (e.key === 'Enter') toggleTool('tool-clock-panel'); });
 
     // Create tool containers
     createToolContainers();
@@ -372,7 +373,7 @@
     translateTool.innerHTML = `
       <div class="header">
         <div class="title">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="color:var(--nova-primary-bg)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="color:var(--nova-primary-bg)">
             <rect x="3" y="3" width="18" height="18" rx="4" fill="currentColor"/>
           </svg>
           <h4>Nova Translate</h4>
@@ -420,7 +421,7 @@
     clockPanel.innerHTML = `
       <div class="header">
         <div class="title">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="color:var(--nova-primary-bg)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style="color:var(--nova-primary-bg)">
             <rect x="3" y="3" width="18" height="18" rx="4" fill="currentColor"/>
           </svg>
           <h4>Clock & Timers</h4>
@@ -504,7 +505,6 @@
     const tool = btn.dataset.tool;
     if (!tool) return;
 
-    // Map tool id to panel id
     const map = {
       'nova-translate': 'tool-nova-translate',
       'nova-calculator': 'tool-calculator',
@@ -541,7 +541,6 @@
       if (p.id !== panelId) closeTool(p.id);
     });
 
-    // Positioning: ensure it slides up from the bar
     panel.classList.add('open');
     panel.setAttribute('aria-hidden', 'false');
 
@@ -559,7 +558,6 @@
     panel.classList.remove('open');
     panel.setAttribute('aria-hidden', 'true');
 
-    // Remove active icon highlight if any
     const toolMap = {
       'tool-nova-translate': 'nova-translate',
       'tool-calculator': 'nova-calculator',
@@ -582,9 +580,7 @@
       return;
     }
 
-    // Simple playful mock: reverse + language tag to simulate translation
     const simulated = `[${from}→${to}] ` + input.split('').reverse().join('');
-    // Smooth fake delay
     out.value = 'Translating…';
     setTimeout(() => {
       out.value = simulated;
@@ -610,7 +606,6 @@
   function initBattery() {
     const fill = document.getElementById('nova-batt-fill');
     if (!navigator.getBattery) {
-      // fallback: hide or set to full
       if (fill) fill.setAttribute('width', '22');
       return;
     }
@@ -684,13 +679,9 @@
     const nowStr = now.toTimeString().slice(0,5);
     timers.forEach((t) => {
       if (!t._fired && t.time === nowStr) {
-        // Fire once per minute
         t._fired = true;
-        // Visual cue: open clock panel briefly
         openTool('tool-clock-panel');
-        // small flash
         flashBar();
-        // Optionally use Notification API
         if (window.Notification && Notification.permission === 'granted') {
           new Notification('Nova Timer', { body: `${t.label} — ${t.time}` });
         } else if (window.Notification && Notification.permission !== 'denied') {
@@ -699,10 +690,8 @@
           });
         }
       }
-      // reset _fired flag when minute changes
       if (t._fired && t.time !== nowStr) t._fired = false;
     });
-    // persist _fired state lightly (not necessary but safe)
     saveTimers(timers);
   }
 
@@ -756,8 +745,6 @@
         document.querySelectorAll('.nova-tool.open').forEach(p => closeTool(p.id));
       }
     });
-
-    // Accessibility: ensure focus trap not required because tools are lightweight
   }
 
   // Run init on DOM ready
