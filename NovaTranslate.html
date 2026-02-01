@@ -10,18 +10,31 @@
     font-family: system-ui, sans-serif;
     background: #0b0f14;
     color: #e6e6e6;
-    display: flex;
-    justify-content: center;
-    align-items: center;
     height: 100vh;
   }
   .window {
+    position: fixed;
+    bottom: 72px;
+    left: 20px;
     width: 92%;
     max-width: 520px;
     background: #121822;
     border-radius: 14px;
     padding: 14px;
     box-shadow: 0 10px 30px rgba(0,0,0,.6);
+    transition: transform 0.25s ease, opacity 0.25s ease;
+    transform: translateY(100%);
+    opacity: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .window.minimized {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  .window.open {
+    transform: translateY(0);
+    opacity: 1;
   }
   .titlebar {
     display: flex;
@@ -52,14 +65,25 @@
     opacity: .7;
     text-align:center;
   }
+  #translatorIcon {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    cursor: pointer;
+    color: #1f6fff;
+    font-size: 24px;
+  }
 </style>
 </head>
 <body>
 
-<div class="window">
+<div id="translatorPanel" class="window minimized">
   <div class="titlebar">
     🌐 Nova Translate (Beta)
-    <span style="cursor:pointer;opacity:.7" onclick="history.back()">✕</span>
+    <div style="display:inline-flex; gap:8px">
+      <span style="cursor:pointer;opacity:.7" id="minimizeBtn">—</span>
+      <span style="cursor:pointer;opacity:.7" id="closeBtn">✕</span>
+    </div>
   </div>
 
   <select id="fromLang">
@@ -85,7 +109,35 @@
   <div class="status" id="status">Ready</div>
 </div>
 
+<div id="translatorIcon">🌐</div>
+
 <script>
+const translatorPanel = document.getElementById("translatorPanel");
+const minimizeBtn = document.getElementById("minimizeBtn");
+const closeBtn = document.getElementById("closeBtn");
+const translatorIcon = document.getElementById("translatorIcon");
+
+// Start minimized
+translatorPanel.classList.add("minimized");
+
+// Open from icon
+translatorIcon.addEventListener("click", () => {
+  translatorPanel.classList.remove("minimized");
+  translatorPanel.classList.add("open");
+});
+
+// Minimize button
+minimizeBtn.addEventListener("click", () => {
+  translatorPanel.classList.remove("open");
+  translatorPanel.classList.add("minimized");
+});
+
+// Close button
+closeBtn.addEventListener("click", () => {
+  translatorPanel.classList.remove("open");
+  translatorPanel.classList.add("minimized");
+});
+
 async function translateNova() {
   const input = document.getElementById("inputText").value.trim();
   if (!input) return;
@@ -103,9 +155,7 @@ async function translateNova() {
     "https://api.mymemory.translated.net/get?q=" +
     encodeURIComponent(input) +
     "&langpair=" +
-    encodeURIComponent(sourceLang) +
-    "|" +
-    encodeURIComponent(to);
+    encodeURIComponent(sourceLang) + "|" + encodeURIComponent(to);
 
   try {
     const res = await fetch(url);
