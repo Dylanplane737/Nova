@@ -1,5 +1,5 @@
 /* Appsbar.js
-   Nova tool dock — updated: thinner, lower, longer
+   Nova tool dock — corrected: thinner, lower, longer, left-aligned, curved right end
    - Bottom-left fixed app bar (not full width)
    - Tools slide up from the bar and never replace search
    - Nova Translate implemented
@@ -8,7 +8,7 @@
 */
 
 (function () {
-  // CONFIG (adjusted: thinner, lower, longer)
+  // CONFIG (thinner, lower, longer but left-aligned)
   const CONFIG = {
     colors: {
       primaryBg: '#2596be',
@@ -21,11 +21,11 @@
       lightBar: 'rgba(255,255,255,0.98)'
     },
     sizes: {
-      barWidth: 720,        // longer
-      barHeight: 48,        // thinner
-      toolWidth: 520,
+      barWidth: 820,        // longer but not full width
+      barHeight: 40,        // slimmer
+      toolWidth: 560,
       toolHeight: 360,
-      gapFromEdge: 12       // lower (closer to bottom)
+      gapFromEdge: 10       // distance from left and bottom edges
     },
     animation: {
       duration: 420,
@@ -78,27 +78,40 @@
   --nova-mono: ${CONFIG.fonts.mono};
 }
 
-/* App bar container (thinner, longer, lower) */
+/* App bar container: left-aligned, not full width, curved inward right end */
 .nova-appsbar {
   position: fixed;
-  left: 0;
-  bottom: 0;            /* flush with bottom */
-  width: 100%;          /* full width of screen */
-  height: 48px;         /* slimmer bar */
+  left: ${CONFIG.sizes.gapFromEdge}px;
+  bottom: ${CONFIG.sizes.gapFromEdge}px;
+  width: var(--nova-bar-width);
+  height: var(--nova-bar-height);
   background: var(--nova-lightbar);
-  border-radius: 0;     /* remove floating corners */
-  box-shadow: 0 2px 6px rgba(0,0,0,0.12); /* subtle shadow */
+  border-radius: 12px 40px 40px 12px; /* curved inward feel on right end */
+  box-shadow: 0 10px 24px rgba(0,0,0,0.16);
   display: flex;
   align-items: center;
-  padding: 0 12px;
-  gap: 12px;
+  padding: 6px 12px;
+  gap: 10px;
   z-index: 9999;
   user-select: none;
   transform: translateZ(0);
   backdrop-filter: blur(6px);
   font-family: var(--nova-font);
+  overflow: visible;
 }
 
+/* subtle inward curve accent using pseudo-element (right-side inward notch) */
+.nova-appsbar::after{
+  content: "";
+  position: absolute;
+  right: -18px;
+  top: 0;
+  height: 100%;
+  width: 36px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.0), rgba(255,255,255,0.02));
+  border-radius: 0 40px 40px 0;
+  pointer-events: none;
+  box-shadow: -8px 0 18px rgba(0,0,0,0.06) inset;
 }
 
 /* Left system area */
@@ -127,7 +140,7 @@
   color: #666;
 }
 
-/* Icon dock (icons smaller to match thinner bar) */
+/* Icon dock (icons smaller to match slimmer bar) */
 .nova-dock {
   display:flex;
   align-items:center;
@@ -136,13 +149,13 @@
   flex: 1 1 auto;
 }
 .nova-icon {
-  width:36px;
-  height:36px;
+  width:34px;
+  height:34px;
   border-radius: 999px;
   display:flex;
   align-items:center;
   justify-content:center;
-  background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.85));
+  background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.88));
   box-shadow: 0 6px 12px rgba(0,0,0,0.10);
   cursor:pointer;
   transition: transform var(--nova-duration) var(--nova-ease), box-shadow var(--nova-duration) var(--nova-ease), background 220ms;
@@ -156,18 +169,17 @@
   box-shadow: 0 10px 24px rgba(0,0,0,0.22);
 }
 
-/* Tool panel base (slightly shifted to align with longer bar) */
+/* Tool panel base (slides up from bar; left-aligned to match bar) */
 .nova-tool {
   position: fixed;
-  left: 0;             /* optional: align left edge */
-  right: 0;            /* optional: align right edge */
-  bottom: 48px;        /* sit just above the bar */
-  width: auto;         /* stretch full width or keep max-width */
-  max-width: var(--nova-tool-width);
+  left: ${CONFIG.sizes.gapFromEdge + 6}px;
+  bottom: calc(${CONFIG.sizes.gapFromEdge}px + ${CONFIG.sizes.barHeight}px + 10px);
+  width: var(--nova-tool-width);
+  max-width: calc(100% - ${CONFIG.sizes.gapFromEdge * 2 + 12}px);
   height: var(--nova-tool-height);
-  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  background: linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0.45));
   border-radius: 12px;
-  box-shadow: 0 12px 30px rgba(0,0,0,0.28);
+  box-shadow: 0 18px 40px rgba(0,0,0,0.36);
   transform: translateY(18px) scale(0.98);
   opacity: 0;
   transition: transform var(--nova-duration) var(--nova-ease), opacity var(--nova-duration) var(--nova-ease);
@@ -255,7 +267,7 @@
   border-radius: 10px;
   padding:8px 10px;
   border: none;
-  background: rgba(0,0,0,0.35);
+  background: rgba(255,255,255,0.03);
   color: var(--nova-text);
   font-family: var(--nova-font);
   outline: none;
@@ -299,10 +311,10 @@
 .nova-timer .actions button { margin-left:6px; }
 
 /* Small responsive adjustments */
-@media (max-width: 720px) {
+@media (max-width: 900px) {
   :root { --nova-tool-width: calc(100% - 56px); }
-  .nova-appsbar { left: 12px; right: 12px; width: auto; border-radius: 12px; bottom: 10px; }
-  .nova-tool { left: 12px; right: 12px; width: auto; }
+  .nova-appsbar { left: 12px; width: calc(100% - 24px); border-radius: 12px; bottom: 10px; }
+  .nova-tool { left: 12px; right: 12px; width: auto; max-width: calc(100% - 24px); }
 }
 `;
     document.head.appendChild(s);
@@ -370,7 +382,7 @@
     initBattery();
   }
 
-  // Tool container creation
+  // Tool container creation (same as before)
   function createToolContainers() {
     // Nova Translate tool
     const translateTool = create('div', { class: 'nova-tool', id: 'tool-nova-translate', 'aria-hidden': 'true' });
