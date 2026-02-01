@@ -38,13 +38,19 @@ settingsMenu.innerHTML = `
 <label>Background Image: <input type="file" id="bgUpload" accept="image/*"></label><br>
 <button id="classicBlueBtn" style="margin-top:6px;padding:6px 10px;border:none;border-radius:6px;background:#0f75a8;color:white;cursor:pointer;">Classic Blue</button><br>
 
-<li id="nova-dev-btn" style="list-style:none;cursor:pointer;margin-top:6px;padding:6px 8px;background:#0f75a8;color:white;border-radius:6px;text-align:center;">Dev Mode (Beta)</li>
+<div id="nova-translate-btn" style="display:block;cursor:pointer;margin-top:6px;padding:6px 8px;background:#4f7cff;color:white;border-radius:6px;text-align:center;">
+  🌐 Nova Translate
+</div>
 `;
+
 document.body.appendChild(settingsMenu);
 
-// --- Add NOVA DEV click listener AFTER menu exists ---
-document.getElementById("nova-dev-btn").addEventListener("click", () => {
-    window.location.href = "DEV.html";
+// --- Required element refs ---
+const collapseBtn = document.getElementById("collapseBtn");
+
+
+document.getElementById("nova-translate-btn").addEventListener("click", () => {
+  window.location.href = "NovaTranslate.html";
 });
 
 // --- Settings toggle button ---
@@ -65,6 +71,7 @@ settingsBtn.style.cssText = `
   box-shadow: 0 4px 12px rgba(0,0,0,0.25);
   transition: left 0.3s ease;
 `;
+
 document.body.appendChild(settingsBtn);
 
 settingsBtn.addEventListener("click", () => {
@@ -82,6 +89,7 @@ settingsMenu.addEventListener("mousedown", (e) => {
   offsetY = e.clientY - settingsMenu.getBoundingClientRect().top;
   settingsMenu.style.transition = "none";
 });
+
 document.addEventListener("mousemove", (e) => {
   if (!isDragging) return;
   let x = e.clientX - offsetX;
@@ -92,6 +100,7 @@ document.addEventListener("mousemove", (e) => {
   settingsMenu.style.top = y + "px";
   settingsMenu.style.bottom = "auto";
 });
+
 document.addEventListener("mouseup", () => {
   if (isDragging) {
     isDragging = false;
@@ -112,6 +121,7 @@ darkModeToggle.addEventListener("change", (e) => {
   localStorage.setItem("novaDarkMode", settings.darkMode);
   applySettings();
 });
+
 bgUpload.addEventListener("change", (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -123,16 +133,19 @@ bgUpload.addEventListener("change", (e) => {
   };
   reader.readAsDataURL(file);
 });
+
 classicBlueBtn.addEventListener("click", () => {
   settings.backgroundImage = null;
   localStorage.removeItem("novaBackground");
   applySettings();
 });
+
 fontSizeInput.addEventListener("change", (e) => {
   settings.fontSize = e.target.value;
   localStorage.setItem("novaFontSize", settings.fontSize);
   applySettings();
 });
+
 audioPreviewToggle.addEventListener("change", (e) => {
   settings.audioPreview = e.target.checked;
   localStorage.setItem("novaAudioPreview", settings.audioPreview);
@@ -148,6 +161,7 @@ function applySettings() {
     document.body.style.color = "white";
     if (!settings.backgroundImage) document.body.style.backgroundColor = "#2596be";
   }
+
   if (settings.backgroundImage) {
     document.body.style.backgroundImage = `url('${settings.backgroundImage}')`;
     document.body.style.backgroundSize = "cover";
@@ -155,6 +169,7 @@ function applySettings() {
   } else {
     document.body.style.backgroundImage = "";
   }
+
   document.body.style.fontSize = settings.fontSize + "px";
   darkModeToggle.checked = settings.darkMode;
   fontSizeInput.value = settings.fontSize;
@@ -175,4 +190,5 @@ footerCredit.style.cssText = `
   z-index: 1600;
   pointer-events: none;
 `;
+
 document.body.appendChild(footerCredit);
