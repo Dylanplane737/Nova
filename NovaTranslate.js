@@ -1,92 +1,101 @@
-// NovaTranslate.js — registerable version for Appsbar.js
 (function () {
-  // Small helper to create elements
-  const create = (tag, attrs = {}, html = '') => {
+  // create helper
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const create = (tag, attrs = {}, children = []) => {
     const el = document.createElement(tag);
     Object.entries(attrs).forEach(([k, v]) => {
       if (k === 'class') el.className = v;
+      else if (k === 'html') el.innerHTML = v;
+      else if (k === 'text') el.textContent = v;
       else el.setAttribute(k, v);
     });
-    el.innerHTML = html;
+    children.forEach(c => el.appendChild(c));
     return el;
   };
 
-  // Render function that Appsbar will call with a container element
-  function renderTranslate(container) {
-    container.innerHTML = `
-      <div class="titlebar">🌐 Nova Translate (Beta)</div>
-      <select id="fromLang">
-        <option value="en">English</option>
-        <option value="es">Spanish</option>
-        <option value="fr">French</option>
-        <option value="de">German</option>
-        <option value="pt">Portuguese</option>
-      </select>
-      <select id="toLang">
-        <option value="es">Spanish</option>
-        <option value="en">English</option>
-        <option value="fr">French</option>
-        <option value="de">German</option>
-        <option value="pt">Portuguese</option>
-      </select>
-      <textarea id="inputText" placeholder="Type text…"></textarea>
-      <button id="translateBtn">Translate</button>
-      <textarea id="outputText" placeholder="Translation…" readonly></textarea>
-      <div class="status" id="status">Ready</div>
-    `;
+  // create the main container
+  function createNovaTranslateUI(container) {
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.gap = '10px';
+    container.style.padding = '12px';
+    container.style.fontFamily = 'sans-serif';
+    container.style.background = '#0b0f14';
+    container.style.color = '#e6e6e6';
+    container.style.width = '100%';
+    container.style.maxWidth = '600px';
+    container.style.margin = 'auto';
 
-    // wire up controls inside the provided container
-    const translateBtn = container.querySelector('#translateBtn');
-    const status = container.querySelector('#status');
-    const inputText = container.querySelector('#inputText');
-    const outputText = container.querySelector('#outputText');
-    const fromLang = container.querySelector('#fromLang');
-    const toLang = container.querySelector('#toLang');
+    // Language selection row
+    const langRow = create('div', { style: 'display:flex;gap:8px;' });
+    const fromLang = create('select', { id: 'fromLang', style:'flex:1;padding:6px;border-radius:6px;background:#1a1f28;color:#e6e6e6;border:none;' });
+    ['Auto','English','Spanish','French','German','Portuguese'].forEach(l => fromLang.add(new Option(l, l.slice(0,2).toLowerCase())));
+    const toLang = create('select', { id: 'toLang', style:'flex:1;padding:6px;border-radius:6px;background:#1a1f28;color:#e6e6e6;border:none;' });
+    ['English','Spanish','French','German','Portuguese'].forEach(l => toLang.add(new Option(l, l.slice(0,2).toLowerCase())));
+    langRow.appendChild(fromLang);
+    langRow.appendChild(toLang);
+    container.appendChild(langRow);
 
-    async function translateNova() {
+    // Input textarea
+    const inputText = create('textarea', {
+      id:'inputText',
+      placeholder:'Type text to translate...',
+      style:'width:100%;min-height:100px;padding:8px;border-radius:8px;background:#1a1f28;color:#e6e6e6;border:none;resize:vertical;'
+    });
+    container.appendChild(inputText);
+
+    // Translate button
+    const translateBtn = create('button', {
+      id:'translateBtn',
+      text:'Translate',
+      style:'padding:8px 14px;border:none;border-radius:8px;background:#2596be;color:#fff;font-weight:700;cursor:pointer;transition:all 0.2s;'
+    });
+    translateBtn.onmouseover = () => translateBtn.style.background = '#0f75a8';
+    translateBtn.onmouseout = () => translateBtn.style.background = '#2596be';
+    container.appendChild(translateBtn);
+
+    // Output textarea
+    const outputText = create('textarea', {
+      id:'outputText',
+      placeholder:'Translation appears here...',
+      readonly:true,
+      style:'width:100%;min-height:100px;padding:8px;border-radius:8px;background:#1a1f28;color:#e6e6e6;border:none;resize:none;'
+    });
+    container.appendChild(outputText);
+
+    // Status
+    const status = create('div', { id:'status', text:'Ready', style:'font-size:12px;color:#a8d0e6;margin-top:4px;' });
+    container.appendChild(status);
+
+    // --- translation logic ---
+    translateBtn.addEventListener('click', async () => {
       const input = inputText.value.trim();
-      if (!input) return;
+      if(!input) return;
       const from = fromLang.value;
       const to = toLang.value;
       status.textContent = 'Translating…';
       outputText.value = '';
+
       const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(input)}&langpair=${encodeURIComponent(from)}|${encodeURIComponent(to)}`;
+
       try {
         const res = await fetch(url);
-        if (!res.ok) { status.textContent = 'Network error (' + res.status + ')'; return; }
+        if(!res.ok){ status.textContent = 'Network error'; return; }
         const data = await res.json();
-        if (data && data.responseData && data.responseData.translatedText) {
+        if(data?.responseData?.translatedText){
           outputText.value = data.responseData.translatedText;
           status.textContent = 'Translated';
         } else {
           status.textContent = 'Translation error';
         }
-      } catch (err) {
+      } catch(err){
         console.error(err);
-        status.textContent = 'Network or API error';
+        status.textContent = 'Network/API error';
       }
-    }
-
-    translateBtn.addEventListener('click', translateNova);
+    });
   }
 
-  // Icon HTML you want to show in the dock
-  const iconHTML = `<span style="font-size:16px;line-height:1">🌐</span>`;
+  // expose globally for testing
+  window.createNovaTranslateUI = createNovaTranslateUI;
 
-  // Register with the Appsbar runtime
-  // Ensure Appsbar.js is loaded first. If NovaApps is not ready yet, wait briefly.
-  function registerWhenReady() {
-    if (window.NovaApps && typeof window.NovaApps.registerApp === 'function') {
-      window.NovaApps.registerApp({
-        id: 'nova-translate',          // unique id used by the dock
-        title: 'Nova Translate',
-        iconHTML: iconHTML,
-        render: renderTranslate
-      });
-    } else {
-      // try again shortly if Appsbar hasn't loaded yet
-      setTimeout(registerWhenReady, 120);
-    }
-  }
-  registerWhenReady();
 })();
