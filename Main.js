@@ -184,19 +184,15 @@
   }
 
   // Register the app with the Appsbar runtime
-  function registerWhenReady() {
-    if (window.NovaApps && typeof window.NovaApps.registerApp === 'function') {
-      window.NovaApps.registerApp({
-        id: 'settings',
-        title: 'Settings',
-        iconHTML: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="color:var(--nova-primary-bg)"><path d="M12 15.5A3.5 3.5 0 1 0 12 8.5a3.5 3.5 0 0 0 0 7z" fill="currentColor"/><path d="M19.4 15a1 1 0 0 0 .2 1.1l.9.9a1 1 0 0 1-1.4 1.4l-.9-.9a1 1 0 0 0-1.1-.2 7.1 7.1 0 0 1-1.6.9 1 1 0 0 0-.6 1v1.3a1 1 0 0 1-2 0V18a1 1 0 0 0-.6-1 7.1 7.1 0 0 1-1.6-.9 1 1 0 0 0-1.1.2l-.9.9a1 1 0 0 1-1.4-1.4l.9-.9a1 1 0 0 0 .2-1.1 7.1 7.1 0 0 1-.9-1.6 1 1 0 0 0-1-.6H3.7a1 1 0 0 1 0-2H5a1 1 0 0 0 1-.6c.2-.6.5-1.2.9-1.6a1 1 0 0 0-.2-1.1l-.9-.9A1 1 0 0 1 6.2 3.6l.9.9a1 1 0 0 0 1.1.2c.5-.3 1-.6 1.6-.9A1 1 0 0 0 10 3h1.3a1 1 0 0 1 0 2H11a1 1 0 0 0-.6 1c-.2.6-.5 1.2-.9 1.6a1 1 0 0 0 .2 1.1l.9.9a1 1 0 0 1-1.4 1.4l-.9-.9a1 1 0 0 0-1.1-.2c-.5.3-1 .6-1.6.9A1 1 0 0 0 6 13v1.3a1 1 0 0 1-2 0V13a1 1 0 0 0-.6-1 7.1 7.1 0 0 1-.9-1.6 1 1 0 0 0-1.1-.2l-.9.9A1 1 0 0 1 .6 11.4l.9-.9a1 1 0 0 0 1.1-.2c.3-.5.6-1 0-1.6A1 1 0 0 0 2 7h1.3a1 1 0 0 1 0-2H3.7a1 1 0 0 0 0 2H5a1 1 0 0 0 .6 1c.6.2 1.2.5 1.6.9.3.5.6 1 .9 1.6.2.5.6.8 1.1.2l.9-.9a1 1 0 0 1 1.4 1.4l-.9.9a1 1 0 0 0-.2 1.1c.3.5.6 1 1 1.6.3.5.6 1 1.1.2l.9-.9a1 1 0 0 1 1.4 1.4l-.9.9a1 1 0 0 0-.2 1.1c.3.5.6 1 1 1.6.3.5.6 1 1.1.2l.9-.9a1 1 0 0 1 1.4 1.4l-.9.9a1 1 0 0 0-.2 1.1c.3.5.6 1 1 1.6.3.5.6 1 1.1.2l.9-.9a1 1 0 0 1 1.4 1.4l-.9.9a1 1 0 0 0 1.4 1.4l.9-.9a1 1 0 0 1 1.4 1.4l-.9.9a1 1 0 0 0 1.4 1.4l.9-.9a1 1 0 0 1 1.4 1.4l-.9.9z" fill="currentColor"/></svg>`,
-        render: renderSettings
-      });
-    } else {
-      setTimeout(registerWhenReady, 120);
-    }
+function registerWhenReady() {
+  if (window.NovaApps && typeof window.NovaApps.registerApp === 'function') {
+    window.NovaApps.registerApp({
+      id: 'settings',
+      title: 'Settings',
+      iconHTML: '⚙️',  // simple gear emoji
+      render: renderSettings
+    });
+  } else {
+    setTimeout(registerWhenReady, 120);
   }
-
-  registerWhenReady();
-})();
-
+}
