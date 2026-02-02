@@ -99,3 +99,17 @@
   window.createNovaTranslateUI = createNovaTranslateUI;
 
 })();
+// Register the Nova Translate app
+(function registerTranslate() {
+  if (window.NovaApps && typeof window.NovaApps.registerApp === 'function') {
+    window.NovaApps.registerApp({
+      id: 'nova-translate',
+      title: 'Translate',
+      iconHTML: '🌐',  // globe emoji
+      render: createNovaTranslateUI
+    });
+  } else {
+    setTimeout(registerTranslate, 120);
+  }
+})();
+
