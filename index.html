@@ -903,171 +903,132 @@ document.getElementById("openBtn").addEventListener("click", openWebsite);
 <script src="Main.js"></script>
 <script src="NovaTranslate.js"></script>
 <script src="Appsbar.js"></script>
-  <script>
+<script>
 /* =========================================================
-   NOVA TABS
-   Drop-in tab system — no other Nova code needs changing.
+   NOVA TABS v2
+   Keeps Nova's REAL DOM in place so existing JS still works.
    ========================================================= */
 
 (() => {
-  const main = document.querySelector("main");
-  if (!main) return;
+  const urlInput = document.getElementById("urlInput");
+  const novaLogo = document.getElementById("Novalogopng");
 
-  /* ---------- TAB DATA ---------- */
-
-  let tabs = [];
-  let activeTab = 0;
-  let tabCounter = 1;
-
-  /*
-    Each tab stores the actual DOM nodes from Nova's main area.
-    Moving the nodes instead of cloning them means Nova's existing
-    event listeners and JavaScript continue working.
-  */
-
-  function createTab(name = "New Tab") {
-    return {
-      id: Date.now() + Math.random(),
-      name,
-      nodes: [],
-      inputValue: ""
-    };
+  if (!urlInput || !novaLogo) {
+    console.error("Nova Tabs: Nova UI not found.");
+    return;
   }
 
-  /* ---------- TAB BAR ---------- */
+  /* =====================================================
+     STYLE
+     ===================================================== */
 
-  const tabBar = document.createElement("div");
-  tabBar.id = "novaTabsBar";
+  const style = document.createElement("style");
 
-  tabBar.innerHTML = `
-    <div id="novaTabsLeft"></div>
-
-    <button id="novaNewTab" title="New Tab">+</button>
-  `;
-
-  document.body.insertBefore(tabBar, main);
-
-  const tabsLeft = document.getElementById("novaTabsLeft");
-  const newTabButton = document.getElementById("novaNewTab");
-
-  /* ---------- STYLE ---------- */
-
-  const tabStyle = document.createElement("style");
-
-  tabStyle.textContent = `
+  style.textContent = `
     #novaTabsBar {
-      width: calc(100% - 24px);
-      max-width: 1200px;
-      margin: 8px auto 18px auto;
+      position: sticky;
+      top: 0;
+      z-index: 999;
 
       display: flex;
-      align-items: stretch;
-      gap: 4px;
+      align-items: center;
+      gap: 5px;
 
-      min-height: 42px;
+      margin: -32px -12px 18px -12px;
+      padding: 7px 10px;
 
-      background: rgba(0,0,0,0.20);
-      border-radius: 10px;
-      padding: 4px;
+      background: rgba(8, 75, 110, 0.96);
+      backdrop-filter: blur(10px);
 
-      box-sizing: border-box;
-
-      font-family: "Pixelify Sans", system-ui, sans-serif;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.22);
 
       overflow-x: auto;
       overflow-y: hidden;
 
-      scrollbar-width: thin;
+      text-align: left;
     }
 
-    #novaTabsLeft {
+    #novaTabsList {
       display: flex;
-      align-items: stretch;
-      gap: 4px;
+      align-items: center;
+      gap: 5px;
 
       flex: 1;
       min-width: 0;
 
       overflow-x: auto;
-      overflow-y: hidden;
-
       scrollbar-width: thin;
     }
 
     .nova-tab {
-      height: 34px;
-      min-width: 120px;
-      max-width: 220px;
-
-      padding: 0 8px 0 12px;
+      height: 36px;
+      min-width: 125px;
+      max-width: 210px;
 
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 7px;
 
+      padding: 0 7px 0 12px;
+
+      border-radius: 9px;
       border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 8px;
 
-      background: rgba(0,0,0,0.18);
-      color: rgba(255,255,255,0.82);
+      background: rgba(0,0,0,0.16);
+      color: rgba(255,255,255,0.80);
 
       cursor: pointer;
-
       user-select: none;
+
+      box-sizing: border-box;
 
       transition:
         background 0.15s ease,
-        transform 0.15s ease,
-        color 0.15s ease;
+        transform 0.15s ease;
     }
 
     .nova-tab:hover {
-      background: rgba(255,255,255,0.12);
-      transform: translateY(-1px);
+      background: rgba(255,255,255,0.13);
     }
 
     .nova-tab.active {
-      background: #0f75a8;
+      background: #2596be;
       color: white;
 
-      box-shadow:
-        0 3px 10px rgba(0,0,0,0.18);
+      box-shadow: 0 3px 8px rgba(0,0,0,0.20);
     }
 
-    .nova-tab-icon {
+    .nova-tab-dot {
       width: 7px;
       height: 7px;
 
       flex-shrink: 0;
 
       border-radius: 50%;
-
       background: #a8d0e6;
     }
 
-    .nova-tab.active .nova-tab-icon {
+    .nova-tab.active .nova-tab-dot {
       background: white;
     }
 
-    .nova-tab-name {
+    .nova-tab-title {
       flex: 1;
-
       min-width: 0;
 
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
 
-      text-align: left;
-
       font-size: 14px;
     }
 
     .nova-tab-close {
-      width: 22px;
-      height: 22px;
+      width: 22px !important;
+      height: 22px !important;
 
-      flex-shrink: 0;
+      margin: 0 !important;
+      padding: 0 !important;
 
       display: flex;
       align-items: center;
@@ -1076,11 +1037,10 @@ document.getElementById("openBtn").addEventListener("click", openWebsite);
       border: none;
       border-radius: 5px;
 
-      background: transparent;
+      background: transparent !important;
       color: inherit;
 
-      padding: 0;
-      margin: 0;
+      box-shadow: none !important;
 
       font-family: Arial, sans-serif;
       font-size: 17px;
@@ -1089,457 +1049,873 @@ document.getElementById("openBtn").addEventListener("click", openWebsite);
     }
 
     .nova-tab-close:hover {
-      background: rgba(255,255,255,0.18);
-      transform: none;
+      background: rgba(255,255,255,0.18) !important;
+      transform: none !important;
     }
 
     #novaNewTab {
-      width: 36px;
-      height: 34px;
+      width: 38px !important;
+      height: 36px !important;
 
-      flex-shrink: 0;
+      min-width: 38px;
 
-      padding: 0;
-      margin: 0;
+      margin: 0 !important;
+      padding: 0 !important;
 
-      border-radius: 8px;
+      border-radius: 9px;
 
-      background: rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.12);
       color: white;
 
-      font-size: 22px;
-      line-height: 1;
-
       box-shadow: none;
+
+      font-size: 23px;
+      line-height: 1;
     }
 
     #novaNewTab:hover {
-      background: rgba(255,255,255,0.20);
+      background: rgba(255,255,255,0.22);
       transform: none;
     }
 
     @media (max-width: 600px) {
-      #novaTabsBar {
-        margin-bottom: 12px;
-      }
-
       .nova-tab {
         min-width: 105px;
       }
     }
   `;
 
-  document.head.appendChild(tabStyle);
+  document.head.appendChild(style);
 
-  /* ---------- SNAPSHOT SYSTEM ---------- */
 
-  function getCurrentNodes() {
-    return Array.from(main.childNodes);
+  /* =====================================================
+     TAB BAR
+     ===================================================== */
+
+  const tabBar = document.createElement("div");
+  tabBar.id = "novaTabsBar";
+
+  const tabsList = document.createElement("div");
+  tabsList.id = "novaTabsList";
+
+  const newTabButton = document.createElement("button");
+  newTabButton.id = "novaNewTab";
+  newTabButton.textContent = "+";
+  newTabButton.title = "New Tab";
+
+  tabBar.appendChild(tabsList);
+  tabBar.appendChild(newTabButton);
+
+  /*
+     IMPORTANT:
+     Put tabs BEFORE EVERYTHING, including the Nova logo.
+  */
+  document.body.insertBefore(tabBar, document.body.firstChild);
+
+
+  /* =====================================================
+     STATE
+     ===================================================== */
+
+  let tabs = [];
+  let activeTabIndex = 0;
+  let nextTabID = 1;
+
+
+  function makeTab(name = "New Tab") {
+    return {
+      id: nextTabID++,
+      name,
+
+      input: "",
+
+      nodes: {},
+
+      resultVisible: false,
+      dictionaryVisible: false,
+      timelineVisible: false,
+      rickrollVisible: false,
+
+      audioVisible: false,
+      audioSrc: "",
+
+      query: "",
+      commonsOffset: 0,
+      images: [],
+      lightIndex: -1,
+
+      scrollY: 0
+    };
   }
+
+
+  /*
+     These elements themselves NEVER get replaced.
+
+     We only move their CHILDREN in and out.
+
+     That means references like:
+
+       const urlInput = ...
+       const wikiSummaryEl = ...
+       const imagesSection = ...
+
+     remain valid forever.
+  */
+
+  const contentIDs = [
+    "wikiSummary",
+    "imagesSection",
+    "videosSection",
+    "dictionaryResults",
+    "timelineList",
+    "relatedSearches"
+  ];
+
+
+  function removeChildren(element) {
+    if (!element) return [];
+
+    const children = [];
+
+    while (element.firstChild) {
+      children.push(element.removeChild(element.firstChild));
+    }
+
+    return children;
+  }
+
+
+  function restoreChildren(element, children) {
+    if (!element || !children) return;
+
+    children.forEach(node => {
+      element.appendChild(node);
+    });
+  }
+
+
+  /* =====================================================
+     SAVE CURRENT TAB
+     ===================================================== */
 
   function saveCurrentTab() {
-    if (!tabs[activeTab]) return;
-
-    tabs[activeTab].nodes = getCurrentNodes();
-
-    const input = document.getElementById("urlInput");
-
-    if (input) {
-      tabs[activeTab].inputValue = input.value;
-    }
-  }
-
-  function removeMainNodes() {
-    while (main.firstChild) {
-      main.removeChild(main.firstChild);
-    }
-  }
-
-  function restoreTab(index) {
-    if (!tabs[index]) return;
-
-    saveCurrentTab();
-
-    activeTab = index;
-
-    removeMainNodes();
-
-    for (const node of tabs[index].nodes) {
-      main.appendChild(node);
-    }
-
-    const input = document.getElementById("urlInput");
-
-    if (input) {
-      input.value = tabs[index].inputValue || "";
-    }
-
-    renderTabs();
-  }
-
-  /* ---------- TAB CREATION ---------- */
-
-  function createNewTab() {
-    saveCurrentTab();
-
-    const currentNodes = getCurrentNodes();
-
-    /*
-      Move the current workspace into the old tab.
-    */
-
-    if (tabs[activeTab]) {
-      tabs[activeTab].nodes = currentNodes;
-    }
-
-    /*
-      A new tab gets a fresh Nova workspace.
-
-      We reload the basic original HTML structure by using the
-      current workspace as a template, then clear dynamic results.
-    */
-
-    const newTab = createTab("New Tab");
-
-    const template = currentNodes.map(node => node.cloneNode(true));
-
-    /*
-      Remove old results from the cloned workspace.
-      This gives the new tab a clean starting point.
-    */
-
-    template.forEach(node => {
-      if (node.id === "resultContainer") {
-        node.classList.remove("visible");
-        node.style.display = "none";
-      }
-
-      if (node.id === "dictionaryContainer") {
-        node.style.display = "none";
-      }
-
-      if (node.id === "timelineContainer") {
-        node.style.display = "none";
-      }
-
-      if (node.id === "rickrollContainer") {
-        node.style.display = "none";
-      }
-
-      if (node.id === "loadingSpinner") {
-        node.classList.remove("visible");
-      }
-    });
-
-    /*
-      Clear search input in the cloned workspace.
-    */
-
-    for (const node of template) {
-      if (node.querySelector) {
-        const input = node.querySelector("#urlInput");
-
-        if (input) {
-          input.value = "";
-        }
-      }
-
-      if (node.id === "urlInput") {
-        node.value = "";
-      }
-    }
-
-    newTab.nodes = template;
-
-    tabs.push(newTab);
-
-    activeTab = tabs.length - 1;
-
-    removeMainNodes();
-
-    for (const node of newTab.nodes) {
-      main.appendChild(node);
-    }
-
-    renderTabs();
-
-    const input = document.getElementById("urlInput");
-
-    if (input) {
-      input.focus();
-    }
-  }
-
-  /* ---------- TAB NAME ---------- */
-
-  function updateTabNameFromSearch() {
-    const tab = tabs[activeTab];
+    const tab = tabs[activeTabIndex];
 
     if (!tab) return;
 
-    const input = document.getElementById("urlInput");
+    tab.input = urlInput.value;
 
-    if (!input) return;
+    tab.nodes = {};
 
-    const value = input.value.trim();
+    contentIDs.forEach(id => {
+      const element = document.getElementById(id);
 
-    if (!value) {
-      tab.name = "New Tab";
-    } else {
-      tab.name =
-        value.length > 24
-          ? value.substring(0, 24) + "…"
-          : value;
+      if (element) {
+        tab.nodes[id] = removeChildren(element);
+      }
+    });
+
+
+    /* Result visibility */
+
+    const results = document.getElementById("resultContainer");
+    const dictionary = document.getElementById("dictionaryContainer");
+    const timeline = document.getElementById("timelineContainer");
+    const rickroll = document.getElementById("rickrollContainer");
+
+    tab.resultVisible =
+      results &&
+      results.classList.contains("visible");
+
+    tab.dictionaryVisible =
+      dictionary &&
+      dictionary.style.display !== "none" &&
+      getComputedStyle(dictionary).display !== "none";
+
+    tab.timelineVisible =
+      timeline &&
+      timeline.style.display !== "none" &&
+      getComputedStyle(timeline).display !== "none";
+
+    tab.rickrollVisible =
+      rickroll &&
+      rickroll.style.display !== "none";
+
+
+    /* Audio */
+
+    const audioBox = document.getElementById("audioBox");
+    const audioPlayer = document.getElementById("audioPlayer");
+
+    if (audioBox) {
+      tab.audioVisible =
+        audioBox.style.display !== "none";
     }
 
-    renderTabs();
+    if (audioPlayer) {
+      tab.audioSrc =
+        audioPlayer.getAttribute("src") || "";
+    }
+
+
+    /*
+       Save Nova's existing global search state.
+    */
+
+    try {
+      tab.query = currentQuery;
+    } catch {}
+
+    try {
+      tab.commonsOffset = commonsOffset;
+    } catch {}
+
+    try {
+      tab.images = [...imagesList];
+    } catch {}
+
+    try {
+      tab.lightIndex = currentLightIndex;
+    } catch {}
+
+    tab.scrollY = window.scrollY;
   }
 
-  /* ---------- RENDER ---------- */
 
-  function renderTabs() {
-    tabsLeft.innerHTML = "";
+  /* =====================================================
+     CLEAR UI
+     ===================================================== */
 
-    tabs.forEach((tab, index) => {
-      const tabElement = document.createElement("div");
+  function clearNovaUI() {
 
-      tabElement.className =
-        "nova-tab" +
-        (index === activeTab ? " active" : "");
+    urlInput.value = "";
 
-      tabElement.title = tab.name;
+    const suggestionBox =
+      document.getElementById("suggestionBox");
 
-      const icon = document.createElement("span");
-      icon.className = "nova-tab-icon";
+    if (suggestionBox) {
+      suggestionBox.innerHTML = "";
+      suggestionBox.classList.remove("show");
+    }
 
-      const name = document.createElement("span");
-      name.className = "nova-tab-name";
-      name.textContent = tab.name;
 
-      const close = document.createElement("button");
-      close.className = "nova-tab-close";
-      close.textContent = "×";
-      close.title = "Close tab";
+    contentIDs.forEach(id => {
+      const element = document.getElementById(id);
 
-      close.addEventListener("click", event => {
-        event.stopPropagation();
-        closeTab(index);
-      });
-
-      tabElement.appendChild(icon);
-      tabElement.appendChild(name);
-      tabElement.appendChild(close);
-
-      tabElement.addEventListener("click", () => {
-        if (index !== activeTab) {
-          restoreTab(index);
+      if (element) {
+        while (element.firstChild) {
+          element.removeChild(element.firstChild);
         }
-      });
+      }
+    });
 
-      /*
-        Double-click a tab name to rename it.
-      */
 
-      tabElement.addEventListener("dblclick", event => {
-        event.stopPropagation();
+    const results =
+      document.getElementById("resultContainer");
 
-        const newName = prompt(
-          "Rename Nova tab:",
-          tab.name
+    if (results) {
+      results.classList.remove("visible");
+    }
+
+
+    const dictionary =
+      document.getElementById("dictionaryContainer");
+
+    if (dictionary) {
+      dictionary.style.display = "none";
+    }
+
+
+    const timeline =
+      document.getElementById("timelineContainer");
+
+    if (timeline) {
+      timeline.style.display = "none";
+    }
+
+
+    const rickroll =
+      document.getElementById("rickrollContainer");
+
+    if (rickroll) {
+      rickroll.style.display = "none";
+    }
+
+
+    const spinner =
+      document.getElementById("loadingSpinner");
+
+    if (spinner) {
+      spinner.classList.remove("visible");
+    }
+
+
+    const audioBox =
+      document.getElementById("audioBox");
+
+    if (audioBox) {
+      audioBox.style.display = "none";
+    }
+
+
+    const audioPlayer =
+      document.getElementById("audioPlayer");
+
+    if (audioPlayer) {
+      audioPlayer.pause();
+      audioPlayer.removeAttribute("src");
+    }
+
+
+    try {
+      currentQuery = "";
+    } catch {}
+
+    try {
+      commonsOffset = 0;
+    } catch {}
+
+    try {
+      imagesList = [];
+    } catch {}
+
+    try {
+      currentLightIndex = -1;
+    } catch {}
+
+
+    /*
+       Close things that should not stay open between tabs.
+    */
+
+    const lightbox =
+      document.getElementById("lightbox");
+
+    if (lightbox) {
+      lightbox.classList.remove("show");
+    }
+  }
+
+
+  /* =====================================================
+     RESTORE TAB
+     ===================================================== */
+
+  function restoreTab(index) {
+    const tab = tabs[index];
+
+    if (!tab) return;
+
+    clearNovaUI();
+
+    activeTabIndex = index;
+
+    urlInput.value = tab.input || "";
+
+
+    contentIDs.forEach(id => {
+      const element = document.getElementById(id);
+
+      if (element && tab.nodes[id]) {
+        restoreChildren(
+          element,
+          tab.nodes[id]
         );
+      }
+    });
 
-        if (newName !== null && newName.trim()) {
-          tab.name = newName.trim();
-          renderTabs();
-        }
-      });
 
-      tabsLeft.appendChild(tabElement);
+    const results =
+      document.getElementById("resultContainer");
+
+    if (results) {
+      results.classList.toggle(
+        "visible",
+        !!tab.resultVisible
+      );
+    }
+
+
+    const dictionary =
+      document.getElementById("dictionaryContainer");
+
+    if (dictionary) {
+      dictionary.style.display =
+        tab.dictionaryVisible
+          ? "block"
+          : "none";
+    }
+
+
+    const timeline =
+      document.getElementById("timelineContainer");
+
+    if (timeline) {
+      timeline.style.display =
+        tab.timelineVisible
+          ? "block"
+          : "none";
+    }
+
+
+    const rickroll =
+      document.getElementById("rickrollContainer");
+
+    if (rickroll) {
+      rickroll.style.display =
+        tab.rickrollVisible
+          ? "block"
+          : "none";
+    }
+
+
+    const audioBox =
+      document.getElementById("audioBox");
+
+    const audioPlayer =
+      document.getElementById("audioPlayer");
+
+    if (audioBox) {
+      audioBox.style.display =
+        tab.audioVisible
+          ? "block"
+          : "none";
+    }
+
+    if (audioPlayer && tab.audioSrc) {
+      audioPlayer.src = tab.audioSrc;
+    }
+
+
+    try {
+      currentQuery = tab.query || "";
+    } catch {}
+
+    try {
+      commonsOffset = tab.commonsOffset || 0;
+    } catch {}
+
+    try {
+      imagesList = [...(tab.images || [])];
+    } catch {}
+
+    try {
+      currentLightIndex =
+        tab.lightIndex ?? -1;
+    } catch {}
+
+
+    renderTabs();
+
+    requestAnimationFrame(() => {
+      window.scrollTo(0, tab.scrollY || 0);
     });
   }
 
-  /* ---------- CLOSE ---------- */
 
-  function closeTab(index) {
-    if (tabs.length === 1) {
-      /*
-        Never allow Nova to have zero tabs.
-      */
+  /* =====================================================
+     NEW TAB
+     ===================================================== */
 
-      tabs[0].name = "New Tab";
-
-      const input = document.getElementById("urlInput");
-
-      if (input) {
-        input.value = "";
-      }
-
-      renderTabs();
-      return;
-    }
+  function createNewTab() {
 
     /*
-      Save before removing.
+       Save old tab.
+
+       saveCurrentTab() removes its result children from
+       the permanent Nova containers, leaving us with a
+       clean workspace.
     */
 
-    if (index === activeTab) {
-      saveCurrentTab();
-    }
+    saveCurrentTab();
 
-    tabs.splice(index, 1);
+    clearNovaUI();
 
-    if (index < activeTab) {
-      activeTab--;
-    } else if (index === activeTab) {
-      activeTab = Math.min(activeTab, tabs.length - 1);
-    }
+    const tab = makeTab();
 
-    removeMainNodes();
+    tabs.push(tab);
 
-    for (const node of tabs[activeTab].nodes) {
-      main.appendChild(node);
-    }
+    activeTabIndex =
+      tabs.length - 1;
 
     renderTabs();
 
-    const input = document.getElementById("urlInput");
+    urlInput.focus();
 
-    if (input) {
-      input.value = tabs[activeTab].inputValue || "";
-      input.focus();
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+  }
+
+
+  /* =====================================================
+     SWITCH
+     ===================================================== */
+
+  function switchTab(index) {
+
+    if (
+      index === activeTabIndex ||
+      !tabs[index]
+    ) {
+      return;
+    }
+
+    saveCurrentTab();
+
+    restoreTab(index);
+
+    urlInput.focus();
+  }
+
+
+  /* =====================================================
+     CLOSE
+     ===================================================== */
+
+  function closeTab(index) {
+
+    if (!tabs[index]) return;
+
+
+    /*
+       If only one tab exists, turn it into a clean tab
+       instead of leaving Nova with zero tabs.
+    */
+
+    if (tabs.length === 1) {
+
+      saveCurrentTab();
+
+      tabs[0] = makeTab();
+
+      activeTabIndex = 0;
+
+      clearNovaUI();
+
+      renderTabs();
+
+      urlInput.focus();
+
+      return;
+    }
+
+
+    if (index === activeTabIndex) {
+
+      saveCurrentTab();
+
+      tabs.splice(index, 1);
+
+      activeTabIndex =
+        Math.min(
+          index,
+          tabs.length - 1
+        );
+
+      restoreTab(activeTabIndex);
+
+    } else {
+
+      tabs.splice(index, 1);
+
+      if (index < activeTabIndex) {
+        activeTabIndex--;
+      }
+
+      renderTabs();
     }
   }
 
-  /* ---------- KEYBOARD SHORTCUTS ---------- */
 
-  document.addEventListener("keydown", event => {
-    /*
-      Don't steal shortcuts while typing in an input.
-    */
+  /* =====================================================
+     TITLES
+     ===================================================== */
 
-    const typing =
-      event.target &&
-      (
-        event.target.tagName === "INPUT" ||
-        event.target.tagName === "TEXTAREA" ||
-        event.target.isContentEditable
+  function updateCurrentTabTitle() {
+
+    const tab =
+      tabs[activeTabIndex];
+
+    if (!tab) return;
+
+    const value =
+      urlInput.value.trim();
+
+    if (!value) {
+      tab.name = "New Tab";
+    } else if (value.length > 25) {
+      tab.name =
+        value.substring(0, 25) + "…";
+    } else {
+      tab.name = value;
+    }
+
+    renderTabs();
+  }
+
+
+  let titleTimer;
+
+  urlInput.addEventListener("input", () => {
+
+    clearTimeout(titleTimer);
+
+    titleTimer = setTimeout(() => {
+      updateCurrentTabTitle();
+    }, 300);
+
+  });
+
+
+  /* =====================================================
+     RENDER TAB BAR
+     ===================================================== */
+
+  function renderTabs() {
+
+    tabsList.innerHTML = "";
+
+    tabs.forEach((tab, index) => {
+
+      const tabElement =
+        document.createElement("div");
+
+      tabElement.className =
+        "nova-tab" +
+        (
+          index === activeTabIndex
+            ? " active"
+            : ""
+        );
+
+      tabElement.title = tab.name;
+
+
+      const dot =
+        document.createElement("span");
+
+      dot.className =
+        "nova-tab-dot";
+
+
+      const title =
+        document.createElement("span");
+
+      title.className =
+        "nova-tab-title";
+
+      title.textContent =
+        tab.name;
+
+
+      const close =
+        document.createElement("button");
+
+      close.className =
+        "nova-tab-close";
+
+      close.textContent = "×";
+
+      close.title = "Close tab";
+
+
+      close.addEventListener(
+        "click",
+        event => {
+
+          event.stopPropagation();
+
+          closeTab(index);
+        }
       );
 
-    /*
-      Ctrl + T = New Tab
-    */
 
-    if (event.ctrlKey && event.key.toLowerCase() === "t") {
-      event.preventDefault();
-      createNewTab();
-      return;
-    }
+      tabElement.addEventListener(
+        "click",
+        () => {
+          switchTab(index);
+        }
+      );
 
-    /*
-      Ctrl + W = Close Tab
-    */
 
-    if (event.ctrlKey && event.key.toLowerCase() === "w") {
-      event.preventDefault();
-      closeTab(activeTab);
-      return;
-    }
+      /*
+         Double click = rename.
+      */
 
-    /*
-      Ctrl + Tab = Next Tab
-    */
+      tabElement.addEventListener(
+        "dblclick",
+        event => {
 
-    if (event.ctrlKey && event.key === "Tab") {
-      event.preventDefault();
+          event.stopPropagation();
 
-      if (tabs.length > 1) {
-        const next =
-          (activeTab + 1) % tabs.length;
+          const name = prompt(
+            "Rename tab:",
+            tab.name
+          );
 
-        restoreTab(next);
-      }
+          if (
+            name !== null &&
+            name.trim()
+          ) {
+            tab.name = name.trim();
 
-      return;
-    }
+            renderTabs();
+          }
+        }
+      );
 
-    /*
-      Ctrl + Shift + Tab = Previous Tab
-    */
 
-    if (
-      event.ctrlKey &&
-      event.shiftKey &&
-      event.key === "Tab"
-    ) {
-      event.preventDefault();
+      tabElement.appendChild(dot);
+      tabElement.appendChild(title);
+      tabElement.appendChild(close);
 
-      if (tabs.length > 1) {
-        const previous =
-          (activeTab - 1 + tabs.length) % tabs.length;
+      tabsList.appendChild(tabElement);
+    });
+  }
 
-        restoreTab(previous);
-      }
 
-      return;
-    }
+  /* =====================================================
+     BUTTON
+     ===================================================== */
 
-    /*
-      Ctrl + 1 through Ctrl + 9 = select tab
-    */
+  newTabButton.addEventListener(
+    "click",
+    createNewTab
+  );
 
-    if (
-      event.ctrlKey &&
-      !event.shiftKey &&
-      /^[1-9]$/.test(event.key)
-    ) {
-      const number = Number(event.key) - 1;
 
-      if (tabs[number]) {
+  /* =====================================================
+     KEYBOARD SHORTCUTS
+     ===================================================== */
+
+  document.addEventListener(
+    "keydown",
+    event => {
+
+      /* Ctrl + T */
+
+      if (
+        event.ctrlKey &&
+        !event.shiftKey &&
+        event.key.toLowerCase() === "t"
+      ) {
         event.preventDefault();
-        restoreTab(number);
+
+        createNewTab();
+
+        return;
       }
+
+
+      /* Ctrl + W */
+
+      if (
+        event.ctrlKey &&
+        event.key.toLowerCase() === "w"
+      ) {
+        event.preventDefault();
+
+        closeTab(activeTabIndex);
+
+        return;
+      }
+
+
+      /* Ctrl + Tab */
+
+      if (
+        event.ctrlKey &&
+        !event.shiftKey &&
+        event.key === "Tab"
+      ) {
+        event.preventDefault();
+
+        if (tabs.length > 1) {
+
+          switchTab(
+            (activeTabIndex + 1) %
+            tabs.length
+          );
+        }
+
+        return;
+      }
+
+
+      /* Ctrl + Shift + Tab */
+
+      if (
+        event.ctrlKey &&
+        event.shiftKey &&
+        event.key === "Tab"
+      ) {
+        event.preventDefault();
+
+        if (tabs.length > 1) {
+
+          switchTab(
+            (
+              activeTabIndex -
+              1 +
+              tabs.length
+            ) %
+            tabs.length
+          );
+        }
+
+        return;
+      }
+
+
+      /* Ctrl + 1 through Ctrl + 9 */
+
+      if (
+        event.ctrlKey &&
+        !event.shiftKey &&
+        /^[1-9]$/.test(event.key)
+      ) {
+
+        const target =
+          Number(event.key) - 1;
+
+        if (tabs[target]) {
+
+          event.preventDefault();
+
+          switchTab(target);
+        }
+      }
+
     }
+  );
 
-    /*
-      Don't update tab name while using keyboard shortcuts.
-    */
 
-    if (typing) return;
-  });
+  /* =====================================================
+     FIRST TAB
+     ===================================================== */
 
-  /* ---------- WATCH SEARCH ---------- */
-
-  document.addEventListener("input", event => {
-    if (
-      event.target &&
-      event.target.id === "urlInput"
-    ) {
-      clearTimeout(window.novaTabNameTimer);
-
-      window.novaTabNameTimer = setTimeout(() => {
-        updateTabNameFromSearch();
-      }, 350);
-    }
-  });
-
-  /* ---------- NEW TAB BUTTON ---------- */
-
-  newTabButton.addEventListener("click", createNewTab);
-
-  /* ---------- INITIAL TAB ---------- */
-
-  const firstTab = createTab("New Tab");
-
-  firstTab.nodes = getCurrentNodes();
+  const firstTab =
+    makeTab("New Tab");
 
   tabs.push(firstTab);
 
+  /*
+     IMPORTANT:
+     We DO NOT save the first tab here because that would
+     remove Nova's existing DOM content immediately.
+  */
+
   renderTabs();
 
+
   console.log(
-    "%cNova Tabs loaded.",
-    "color:#2596be;font-weight:bold;"
+    "%cNova Tabs v2 loaded",
+    "color:#2596be;font-weight:bold;font-size:14px;"
   );
+
 })();
 </script>
 </body>
