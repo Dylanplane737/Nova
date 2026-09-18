@@ -903,5 +903,644 @@ document.getElementById("openBtn").addEventListener("click", openWebsite);
 <script src="Main.js"></script>
 <script src="NovaTranslate.js"></script>
 <script src="Appsbar.js"></script>
+  <script>
+/* =========================================================
+   NOVA TABS
+   Drop-in tab system — no other Nova code needs changing.
+   ========================================================= */
+
+(() => {
+  const main = document.querySelector("main");
+  if (!main) return;
+
+  /* ---------- TAB DATA ---------- */
+
+  let tabs = [];
+  let activeTab = 0;
+  let tabCounter = 1;
+
+  /*
+    Each tab stores the actual DOM nodes from Nova's main area.
+    Moving the nodes instead of cloning them means Nova's existing
+    event listeners and JavaScript continue working.
+  */
+
+  function createTab(name = "New Tab") {
+    return {
+      id: Date.now() + Math.random(),
+      name,
+      nodes: [],
+      inputValue: ""
+    };
+  }
+
+  /* ---------- TAB BAR ---------- */
+
+  const tabBar = document.createElement("div");
+  tabBar.id = "novaTabsBar";
+
+  tabBar.innerHTML = `
+    <div id="novaTabsLeft"></div>
+
+    <button id="novaNewTab" title="New Tab">+</button>
+  `;
+
+  document.body.insertBefore(tabBar, main);
+
+  const tabsLeft = document.getElementById("novaTabsLeft");
+  const newTabButton = document.getElementById("novaNewTab");
+
+  /* ---------- STYLE ---------- */
+
+  const tabStyle = document.createElement("style");
+
+  tabStyle.textContent = `
+    #novaTabsBar {
+      width: calc(100% - 24px);
+      max-width: 1200px;
+      margin: 8px auto 18px auto;
+
+      display: flex;
+      align-items: stretch;
+      gap: 4px;
+
+      min-height: 42px;
+
+      background: rgba(0,0,0,0.20);
+      border-radius: 10px;
+      padding: 4px;
+
+      box-sizing: border-box;
+
+      font-family: "Pixelify Sans", system-ui, sans-serif;
+
+      overflow-x: auto;
+      overflow-y: hidden;
+
+      scrollbar-width: thin;
+    }
+
+    #novaTabsLeft {
+      display: flex;
+      align-items: stretch;
+      gap: 4px;
+
+      flex: 1;
+      min-width: 0;
+
+      overflow-x: auto;
+      overflow-y: hidden;
+
+      scrollbar-width: thin;
+    }
+
+    .nova-tab {
+      height: 34px;
+      min-width: 120px;
+      max-width: 220px;
+
+      padding: 0 8px 0 12px;
+
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 8px;
+
+      background: rgba(0,0,0,0.18);
+      color: rgba(255,255,255,0.82);
+
+      cursor: pointer;
+
+      user-select: none;
+
+      transition:
+        background 0.15s ease,
+        transform 0.15s ease,
+        color 0.15s ease;
+    }
+
+    .nova-tab:hover {
+      background: rgba(255,255,255,0.12);
+      transform: translateY(-1px);
+    }
+
+    .nova-tab.active {
+      background: #0f75a8;
+      color: white;
+
+      box-shadow:
+        0 3px 10px rgba(0,0,0,0.18);
+    }
+
+    .nova-tab-icon {
+      width: 7px;
+      height: 7px;
+
+      flex-shrink: 0;
+
+      border-radius: 50%;
+
+      background: #a8d0e6;
+    }
+
+    .nova-tab.active .nova-tab-icon {
+      background: white;
+    }
+
+    .nova-tab-name {
+      flex: 1;
+
+      min-width: 0;
+
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+
+      text-align: left;
+
+      font-size: 14px;
+    }
+
+    .nova-tab-close {
+      width: 22px;
+      height: 22px;
+
+      flex-shrink: 0;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border: none;
+      border-radius: 5px;
+
+      background: transparent;
+      color: inherit;
+
+      padding: 0;
+      margin: 0;
+
+      font-family: Arial, sans-serif;
+      font-size: 17px;
+
+      cursor: pointer;
+    }
+
+    .nova-tab-close:hover {
+      background: rgba(255,255,255,0.18);
+      transform: none;
+    }
+
+    #novaNewTab {
+      width: 36px;
+      height: 34px;
+
+      flex-shrink: 0;
+
+      padding: 0;
+      margin: 0;
+
+      border-radius: 8px;
+
+      background: rgba(255,255,255,0.10);
+      color: white;
+
+      font-size: 22px;
+      line-height: 1;
+
+      box-shadow: none;
+    }
+
+    #novaNewTab:hover {
+      background: rgba(255,255,255,0.20);
+      transform: none;
+    }
+
+    @media (max-width: 600px) {
+      #novaTabsBar {
+        margin-bottom: 12px;
+      }
+
+      .nova-tab {
+        min-width: 105px;
+      }
+    }
+  `;
+
+  document.head.appendChild(tabStyle);
+
+  /* ---------- SNAPSHOT SYSTEM ---------- */
+
+  function getCurrentNodes() {
+    return Array.from(main.childNodes);
+  }
+
+  function saveCurrentTab() {
+    if (!tabs[activeTab]) return;
+
+    tabs[activeTab].nodes = getCurrentNodes();
+
+    const input = document.getElementById("urlInput");
+
+    if (input) {
+      tabs[activeTab].inputValue = input.value;
+    }
+  }
+
+  function removeMainNodes() {
+    while (main.firstChild) {
+      main.removeChild(main.firstChild);
+    }
+  }
+
+  function restoreTab(index) {
+    if (!tabs[index]) return;
+
+    saveCurrentTab();
+
+    activeTab = index;
+
+    removeMainNodes();
+
+    for (const node of tabs[index].nodes) {
+      main.appendChild(node);
+    }
+
+    const input = document.getElementById("urlInput");
+
+    if (input) {
+      input.value = tabs[index].inputValue || "";
+    }
+
+    renderTabs();
+  }
+
+  /* ---------- TAB CREATION ---------- */
+
+  function createNewTab() {
+    saveCurrentTab();
+
+    const currentNodes = getCurrentNodes();
+
+    /*
+      Move the current workspace into the old tab.
+    */
+
+    if (tabs[activeTab]) {
+      tabs[activeTab].nodes = currentNodes;
+    }
+
+    /*
+      A new tab gets a fresh Nova workspace.
+
+      We reload the basic original HTML structure by using the
+      current workspace as a template, then clear dynamic results.
+    */
+
+    const newTab = createTab("New Tab");
+
+    const template = currentNodes.map(node => node.cloneNode(true));
+
+    /*
+      Remove old results from the cloned workspace.
+      This gives the new tab a clean starting point.
+    */
+
+    template.forEach(node => {
+      if (node.id === "resultContainer") {
+        node.classList.remove("visible");
+        node.style.display = "none";
+      }
+
+      if (node.id === "dictionaryContainer") {
+        node.style.display = "none";
+      }
+
+      if (node.id === "timelineContainer") {
+        node.style.display = "none";
+      }
+
+      if (node.id === "rickrollContainer") {
+        node.style.display = "none";
+      }
+
+      if (node.id === "loadingSpinner") {
+        node.classList.remove("visible");
+      }
+    });
+
+    /*
+      Clear search input in the cloned workspace.
+    */
+
+    for (const node of template) {
+      if (node.querySelector) {
+        const input = node.querySelector("#urlInput");
+
+        if (input) {
+          input.value = "";
+        }
+      }
+
+      if (node.id === "urlInput") {
+        node.value = "";
+      }
+    }
+
+    newTab.nodes = template;
+
+    tabs.push(newTab);
+
+    activeTab = tabs.length - 1;
+
+    removeMainNodes();
+
+    for (const node of newTab.nodes) {
+      main.appendChild(node);
+    }
+
+    renderTabs();
+
+    const input = document.getElementById("urlInput");
+
+    if (input) {
+      input.focus();
+    }
+  }
+
+  /* ---------- TAB NAME ---------- */
+
+  function updateTabNameFromSearch() {
+    const tab = tabs[activeTab];
+
+    if (!tab) return;
+
+    const input = document.getElementById("urlInput");
+
+    if (!input) return;
+
+    const value = input.value.trim();
+
+    if (!value) {
+      tab.name = "New Tab";
+    } else {
+      tab.name =
+        value.length > 24
+          ? value.substring(0, 24) + "…"
+          : value;
+    }
+
+    renderTabs();
+  }
+
+  /* ---------- RENDER ---------- */
+
+  function renderTabs() {
+    tabsLeft.innerHTML = "";
+
+    tabs.forEach((tab, index) => {
+      const tabElement = document.createElement("div");
+
+      tabElement.className =
+        "nova-tab" +
+        (index === activeTab ? " active" : "");
+
+      tabElement.title = tab.name;
+
+      const icon = document.createElement("span");
+      icon.className = "nova-tab-icon";
+
+      const name = document.createElement("span");
+      name.className = "nova-tab-name";
+      name.textContent = tab.name;
+
+      const close = document.createElement("button");
+      close.className = "nova-tab-close";
+      close.textContent = "×";
+      close.title = "Close tab";
+
+      close.addEventListener("click", event => {
+        event.stopPropagation();
+        closeTab(index);
+      });
+
+      tabElement.appendChild(icon);
+      tabElement.appendChild(name);
+      tabElement.appendChild(close);
+
+      tabElement.addEventListener("click", () => {
+        if (index !== activeTab) {
+          restoreTab(index);
+        }
+      });
+
+      /*
+        Double-click a tab name to rename it.
+      */
+
+      tabElement.addEventListener("dblclick", event => {
+        event.stopPropagation();
+
+        const newName = prompt(
+          "Rename Nova tab:",
+          tab.name
+        );
+
+        if (newName !== null && newName.trim()) {
+          tab.name = newName.trim();
+          renderTabs();
+        }
+      });
+
+      tabsLeft.appendChild(tabElement);
+    });
+  }
+
+  /* ---------- CLOSE ---------- */
+
+  function closeTab(index) {
+    if (tabs.length === 1) {
+      /*
+        Never allow Nova to have zero tabs.
+      */
+
+      tabs[0].name = "New Tab";
+
+      const input = document.getElementById("urlInput");
+
+      if (input) {
+        input.value = "";
+      }
+
+      renderTabs();
+      return;
+    }
+
+    /*
+      Save before removing.
+    */
+
+    if (index === activeTab) {
+      saveCurrentTab();
+    }
+
+    tabs.splice(index, 1);
+
+    if (index < activeTab) {
+      activeTab--;
+    } else if (index === activeTab) {
+      activeTab = Math.min(activeTab, tabs.length - 1);
+    }
+
+    removeMainNodes();
+
+    for (const node of tabs[activeTab].nodes) {
+      main.appendChild(node);
+    }
+
+    renderTabs();
+
+    const input = document.getElementById("urlInput");
+
+    if (input) {
+      input.value = tabs[activeTab].inputValue || "";
+      input.focus();
+    }
+  }
+
+  /* ---------- KEYBOARD SHORTCUTS ---------- */
+
+  document.addEventListener("keydown", event => {
+    /*
+      Don't steal shortcuts while typing in an input.
+    */
+
+    const typing =
+      event.target &&
+      (
+        event.target.tagName === "INPUT" ||
+        event.target.tagName === "TEXTAREA" ||
+        event.target.isContentEditable
+      );
+
+    /*
+      Ctrl + T = New Tab
+    */
+
+    if (event.ctrlKey && event.key.toLowerCase() === "t") {
+      event.preventDefault();
+      createNewTab();
+      return;
+    }
+
+    /*
+      Ctrl + W = Close Tab
+    */
+
+    if (event.ctrlKey && event.key.toLowerCase() === "w") {
+      event.preventDefault();
+      closeTab(activeTab);
+      return;
+    }
+
+    /*
+      Ctrl + Tab = Next Tab
+    */
+
+    if (event.ctrlKey && event.key === "Tab") {
+      event.preventDefault();
+
+      if (tabs.length > 1) {
+        const next =
+          (activeTab + 1) % tabs.length;
+
+        restoreTab(next);
+      }
+
+      return;
+    }
+
+    /*
+      Ctrl + Shift + Tab = Previous Tab
+    */
+
+    if (
+      event.ctrlKey &&
+      event.shiftKey &&
+      event.key === "Tab"
+    ) {
+      event.preventDefault();
+
+      if (tabs.length > 1) {
+        const previous =
+          (activeTab - 1 + tabs.length) % tabs.length;
+
+        restoreTab(previous);
+      }
+
+      return;
+    }
+
+    /*
+      Ctrl + 1 through Ctrl + 9 = select tab
+    */
+
+    if (
+      event.ctrlKey &&
+      !event.shiftKey &&
+      /^[1-9]$/.test(event.key)
+    ) {
+      const number = Number(event.key) - 1;
+
+      if (tabs[number]) {
+        event.preventDefault();
+        restoreTab(number);
+      }
+    }
+
+    /*
+      Don't update tab name while using keyboard shortcuts.
+    */
+
+    if (typing) return;
+  });
+
+  /* ---------- WATCH SEARCH ---------- */
+
+  document.addEventListener("input", event => {
+    if (
+      event.target &&
+      event.target.id === "urlInput"
+    ) {
+      clearTimeout(window.novaTabNameTimer);
+
+      window.novaTabNameTimer = setTimeout(() => {
+        updateTabNameFromSearch();
+      }, 350);
+    }
+  });
+
+  /* ---------- NEW TAB BUTTON ---------- */
+
+  newTabButton.addEventListener("click", createNewTab);
+
+  /* ---------- INITIAL TAB ---------- */
+
+  const firstTab = createTab("New Tab");
+
+  firstTab.nodes = getCurrentNodes();
+
+  tabs.push(firstTab);
+
+  renderTabs();
+
+  console.log(
+    "%cNova Tabs loaded.",
+    "color:#2596be;font-weight:bold;"
+  );
+})();
+</script>
 </body>
 </html>
