@@ -598,8 +598,21 @@ function checkEasterEggs(input){
 // --- Web search ---
 function normalizeWebUrl(url){
   if (!url) return "";
+
   try {
-    return new URL(url, "https://duckduckgo.com").href;
+    const parsed = new URL(url, "https://duckduckgo.com");
+
+    // DuckDuckGo wraps result links through /l/?uddg=...
+    // Unwrap them so Nova shows/opens the actual destination.
+    if (
+      /(^|\.)duckduckgo\.com$/i.test(parsed.hostname) &&
+      parsed.pathname === "/l/"
+    ) {
+      const target = parsed.searchParams.get("uddg");
+      if (target) return decodeURIComponent(target);
+    }
+
+    return parsed.href;
   } catch {
     return "";
   }
@@ -614,8 +627,24 @@ function parseWebSearchResults(markdown){
   const linkRegex = /\[([^\]]{2,180})\]\((https?:\/\/[^)\s]+)\)/g;
   let match;
   while ((match = linkRegex.exec(text)) !== null) {
-    const title = match[1].replace(/\s+/g, " ").trim();
-    const url = normalizeWebUrl(match[2]);
+    const rawTitle = match[1].replace(/\s+/g, " ").trim();
+    const rawUrl = match[2];
+
+    // Skip Markdown images/favicons accidentally exposed by the reader.
+    if (
+      /!\s*\[/i.test(rawTitle) ||
+      /\bimage\s*\d*\b/i.test(rawTitle) ||
+      /external-content\.duckduckgo\.com/i.test(rawUrl)
+    ) {
+      continue;
+    }
+
+    const title = rawTitle
+      .replace(/^\*+|\*+$/g, "")
+      .replace(/\\([\[\]()])/g, "$1")
+      .trim();
+
+    const url = normalizeWebUrl(rawUrl);
     if (!url || !title || seen.has(url)) continue;
 
     if (/^https?:\/\/html\.duckduckgo\.com\//i.test(url)) continue;
