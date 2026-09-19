@@ -94,48 +94,95 @@
     transition: box-shadow 0.3s ease;
   }
 
-  /* Nova Settings button */
-  #novaSettingsButton {
-    position: fixed;
-    right: 18px;
-    bottom: 18px;
-    z-index: 1500;
-    margin: 0;
-    width: 46px;
-    height: 46px;
-    padding: 0;
-    border-radius: 50%;
-    background: #0f75a8;
+  /* Nova Settings / overflow menu */
+  #novaSettingsMenu {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  #novaSettingsMenuToggle {
+    width: 38px !important;
+    height: 36px !important;
+    min-width: 38px;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 9px;
+    background: rgba(255,255,255,0.12);
     color: white;
-    border: 2px solid rgba(255,255,255,0.35);
-    box-shadow: 0 6px 16px rgba(0,0,0,0.25);
-    font-size: 21px;
-    line-height: 42px;
+    box-shadow: none;
+    font-size: 22px;
+    line-height: 1;
+    letter-spacing: 1px;
   }
+
+  #novaSettingsMenuToggle:hover {
+    background: rgba(255,255,255,0.22);
+    transform: none;
+  }
+
+  #novaSettingsDropdown {
+    position: absolute;
+    top: calc(100% + 7px);
+    right: 0;
+    width: 190px;
+    padding: 6px;
+    border-radius: 10px;
+    background: rgba(7,16,24,0.98);
+    border: 1px solid rgba(255,255,255,0.16);
+    box-shadow: 0 10px 28px rgba(0,0,0,0.35);
+    z-index: 2005;
+    display: none;
+  }
+
+  #novaSettingsDropdown.show {
+    display: block;
+  }
+
+  #novaSettingsButton {
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 38px !important;
+    margin: 0 !important;
+    padding: 0 12px !important;
+    display: flex !important;
+    align-items: center;
+    gap: 10px;
+    border-radius: 8px !important;
+    background: transparent !important;
+    color: white !important;
+    box-shadow: none !important;
+    font-size: 14px;
+    text-align: left;
+    transform: none !important;
+  }
+
   #novaSettingsButton:hover {
-    background: #fff;
-    color: #0f75a8;
-    transform: translateY(-2px);
+    background: rgba(255,255,255,0.12) !important;
+    transform: none !important;
   }
+
   #novaSettingsPanel {
     position: fixed;
-    right: 18px;
-    bottom: 76px;
-    width: min(430px, calc(100vw - 36px));
-    max-height: min(680px, calc(100vh - 110px));
+    top: 52px;
+    right: 10px;
+    bottom: auto;
+    width: min(430px, calc(100vw - 20px));
+    max-height: min(700px, calc(100vh - 70px));
     overflow: auto;
-    z-index: 1499;
+    z-index: 2004;
     display: none;
     box-sizing: border-box;
     padding: 18px;
-    border-radius: 16px;
-    background: rgba(7, 16, 24, 0.96);
+    border-radius: 14px;
+    background: rgba(7,16,24,0.98);
     color: white;
     text-align: left;
-    box-shadow: 0 12px 35px rgba(0,0,0,0.35);
+    box-shadow: 0 12px 35px rgba(0,0,0,0.38);
     border: 1px solid rgba(255,255,255,0.16);
   }
+
   #novaSettingsPanel.show { display: block; }
+
   #novaSettingsPanel .nova-settings-close {
     float: right;
     margin: 0 0 10px 10px;
@@ -150,7 +197,6 @@
   <img src="Novalogo.png" alt="Logo" id="Novalogopng" style="width:200px; height:auto; display:block; margin:20px auto;">
 
   
-  <button id="novaSettingsButton" type="button" title="Settings" aria-label="Open Settings">⚙️</button>
   <section id="novaSettingsPanel" aria-hidden="true">
     <button class="nova-settings-close" id="novaSettingsClose" type="button" title="Close Settings">×</button>
     <div id="novaSettingsContent"></div>
@@ -1364,9 +1410,59 @@ document.getElementById("openBtn").addEventListener("click", openWebsite);
   newTabButton.id = "novaNewTab";
   newTabButton.textContent = "+";
   newTabButton.title = "New Tab";
+  newTabButton.setAttribute("aria-label", "New Tab");
+
+  const settingsMenu = document.createElement("div");
+  settingsMenu.id = "novaSettingsMenu";
+
+  const settingsMenuToggle = document.createElement("button");
+  settingsMenuToggle.id = "novaSettingsMenuToggle";
+  settingsMenuToggle.type = "button";
+  settingsMenuToggle.textContent = "⋮";
+  settingsMenuToggle.title = "More";
+  settingsMenuToggle.setAttribute("aria-label", "More options");
+  settingsMenuToggle.setAttribute("aria-expanded", "false");
+
+  const settingsDropdown = document.createElement("div");
+  settingsDropdown.id = "novaSettingsDropdown";
+  settingsDropdown.setAttribute("role", "menu");
+
+  const settingsButton = document.createElement("button");
+  settingsButton.id = "novaSettingsButton";
+  settingsButton.type = "button";
+  settingsButton.setAttribute("role", "menuitem");
+  settingsButton.innerHTML = "<span style='font-size:17px'>⚙️</span><span>Settings</span>";
+
+  settingsDropdown.appendChild(settingsButton);
+  settingsMenu.appendChild(settingsMenuToggle);
+  settingsMenu.appendChild(settingsDropdown);
 
   tabBar.appendChild(tabsList);
   tabBar.appendChild(newTabButton);
+  tabBar.appendChild(settingsMenu);
+
+  settingsMenuToggle.addEventListener("click", function (event) {
+    event.stopPropagation();
+    const open = settingsDropdown.classList.toggle("show");
+    settingsMenuToggle.setAttribute("aria-expanded", String(open));
+  });
+
+  settingsButton.addEventListener("click", function () {
+    settingsDropdown.classList.remove("show");
+    settingsMenuToggle.setAttribute("aria-expanded", "false");
+    if (typeof window.openNovaSettings === "function") {
+      window.openNovaSettings();
+    } else {
+      document.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    }
+  });
+
+  document.addEventListener("click", function (event) {
+    if (!settingsMenu.contains(event.target)) {
+      settingsDropdown.classList.remove("show");
+      settingsMenuToggle.setAttribute("aria-expanded", "false");
+    }
+  });
 
   /*
      IMPORTANT:
