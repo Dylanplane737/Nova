@@ -93,12 +93,70 @@
     box-shadow: 0 0 12px 3px #a8d0e6;
     transition: box-shadow 0.3s ease;
   }
+
+  /* Nova Settings button */
+  #novaSettingsButton {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 1500;
+    margin: 0;
+    width: 46px;
+    height: 46px;
+    padding: 0;
+    border-radius: 50%;
+    background: #0f75a8;
+    color: white;
+    border: 2px solid rgba(255,255,255,0.35);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+    font-size: 21px;
+    line-height: 42px;
+  }
+  #novaSettingsButton:hover {
+    background: #fff;
+    color: #0f75a8;
+    transform: translateY(-2px);
+  }
+  #novaSettingsPanel {
+    position: fixed;
+    right: 18px;
+    bottom: 76px;
+    width: min(430px, calc(100vw - 36px));
+    max-height: min(680px, calc(100vh - 110px));
+    overflow: auto;
+    z-index: 1499;
+    display: none;
+    box-sizing: border-box;
+    padding: 18px;
+    border-radius: 16px;
+    background: rgba(7, 16, 24, 0.96);
+    color: white;
+    text-align: left;
+    box-shadow: 0 12px 35px rgba(0,0,0,0.35);
+    border: 1px solid rgba(255,255,255,0.16);
+  }
+  #novaSettingsPanel.show { display: block; }
+  #novaSettingsPanel .nova-settings-close {
+    float: right;
+    margin: 0 0 10px 10px;
+    padding: 5px 10px;
+    font-size: 18px;
+    line-height: 1;
+  }
+
 </style>
 </head>
 <body>
   <img src="Novalogo.png" alt="Logo" id="Novalogopng" style="width:200px; height:auto; display:block; margin:20px auto;">
 
-  <main>
+  
+  <button id="novaSettingsButton" type="button" title="Settings" aria-label="Open Settings">⚙️</button>
+  <section id="novaSettingsPanel" aria-hidden="true">
+    <button class="nova-settings-close" id="novaSettingsClose" type="button" title="Close Settings">×</button>
+    <div id="novaSettingsContent"></div>
+  </section>
+
+<main>
     <section class="search-wrap">
       <input id="urlInput" placeholder="Search... (e.g. cute cats or google.com)" autocomplete="off" />
       <div id="suggestionBox" class="suggestions" role="listbox"></div>
@@ -1099,7 +1157,43 @@ document.getElementById("openBtn").addEventListener("click", openWebsite);
 </script>
 
 <!-- Load Apps (Make sure to fix Main.js by adding registerWhenReady(); at the bottom!) -->
+
 <script src="Main.js"></script>
+<script>
+(function () {
+  const button = document.getElementById("novaSettingsButton");
+  const panel = document.getElementById("novaSettingsPanel");
+  const content = document.getElementById("novaSettingsContent");
+  const close = document.getElementById("novaSettingsClose");
+
+  function openNovaSettings() {
+    if (!panel || !content) return;
+    panel.classList.add("show");
+    panel.setAttribute("aria-hidden", "false");
+
+    if (typeof window.renderNovaSettings === "function") {
+      window.renderNovaSettings(content);
+    } else {
+      content.innerHTML = "<p>Settings failed to load.</p>";
+    }
+  }
+
+  function closeNovaSettings() {
+    if (!panel) return;
+    panel.classList.remove("show");
+    panel.setAttribute("aria-hidden", "true");
+  }
+
+  button && button.addEventListener("click", openNovaSettings);
+  close && close.addEventListener("click", closeNovaSettings);
+
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && panel && panel.classList.contains("show")) {
+      closeNovaSettings();
+    }
+  });
+})();
+</script>
 <script src="NovaTranslate.js"></script>
 <script>
 /* =========================================================
