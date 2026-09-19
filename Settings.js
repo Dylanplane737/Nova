@@ -263,7 +263,7 @@
     container.innerHTML = [
       '<div class="nova-settings">',
       '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">',
-      '<div><h2 style="margin:0">Nova Settings</h2><div style="font-size:12px;opacity:.7">Local-only features • no new APIs</div></div>',
+      '<div><h2 style="margin:0">Nova Settings</h2><div style="font-size:12px;opacity:.7">Made by Dylan.H :3</div></div>',
       '<span style="font-size:12px;opacity:.6">v2</span>',
       '</div>',
 
