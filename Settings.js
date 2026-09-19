@@ -1,7 +1,10 @@
 /* =========================================================
-   NOVA SETTINGS
+   NOVA SETTINGS — v2.1 "Glasshouse"
    ========================================================= */
 (function () {
+  "use strict";
+
+  /* ---------- storage contract (unchanged) ---------- */
   const STORAGE = {
     theme: "novaTheme",
     accent: "novaAccent",
@@ -48,9 +51,68 @@
     retro:   { name: "Retro",        bg: "#c0c0c0", text: "#000000" }
   };
 
+  /* ---------- panel chrome palettes (drawer only, page themes untouched) ---------- */
+  const PANEL = {
+    classic: { bg:"#ffffff", surface:"#f4f7fb", hover:"#ebf2f9", text:"#122c40", sub:"#5f7688",
+      border:"#e3eaf2", borderSoft:"#eef3f8", borderStrong:"#c9d7e3",
+      shadow:"rgba(9,42,70,.30)", shadowSoft:"rgba(9,42,70,.12)",
+      footer:"rgba(255,255,255,.86)", switchOff:"#c5d4e0", danger:"#c0392b" },
+    dark: { bg:"#0b1520", surface:"#101f2f", hover:"#16293c", text:"#e8f2fb", sub:"#8aa2b5",
+      border:"#1d3042", borderSoft:"#16283a", borderStrong:"#2c455c",
+      shadow:"rgba(0,0,0,.60)", shadowSoft:"rgba(0,0,0,.35)",
+      footer:"rgba(11,21,32,.86)", switchOff:"#24384b", danger:"#ff7b6f" },
+    light: { bg:"#ffffff", surface:"#eff5f9", hover:"#e5eef5", text:"#122c40", sub:"#5f7688",
+      border:"#e0e9f0", borderSoft:"#ecf2f7", borderStrong:"#c4d4e0",
+      shadow:"rgba(9,42,70,.24)", shadowSoft:"rgba(9,42,70,.10)",
+      footer:"rgba(255,255,255,.86)", switchOff:"#bfd0dd", danger:"#c0392b" },
+    retro: { bg:"#c8c8c8", surface:"#d9d9d9", hover:"#bfbfbf", text:"#101010", sub:"#3d3d3d",
+      border:"#7e7e7e", borderSoft:"#adadad", borderStrong:"#5a5a5a",
+      shadow:"rgba(0,0,0,.45)", shadowSoft:"rgba(0,0,0,.20)",
+      footer:"rgba(200,200,200,.92)", switchOff:"#9c9c9c", danger:"#8b0000" }
+  };
+
+  const ACCENT_PRESETS = ["#0f75a8", "#2d9cdb", "#1681b8", "#5a67d8", "#00857a", "#000080"];
+  const THEME_ACCENTS  = { classic:"#0f75a8", dark:"#2d9cdb", light:"#1681b8", retro:"#000080" };
+
+  /* ---------- icons (feather-style, stroke = currentColor) ---------- */
+  const ICON_PATHS = {
+    sliders: '<line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/>',
+    search: '<circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.3" y2="16.3"/>',
+    shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
+    volume: '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.8 5.2a9.4 9.4 0 0 1 0 13.6"/>',
+    trash: '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>',
+    eraser: '<path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21"/><path d="M22 21H7"/><path d="m5 11 9 9"/>',
+    download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+    upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
+    check: '<polyline points="20 6 9 17 4 12"/>',
+    undo: '<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>',
+    image: '<rect x="3" y="3" width="18" height="18" rx="2.5"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/>',
+    plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>'
+  };
+
+  function icon(name) {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICON_PATHS[name] + '</svg>';
+  }
+
+  const I = {
+    spark: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z"/></svg>'
+  };
+  Object.keys(ICON_PATHS).forEach(function (n) { I[n] = icon(n); });
+
+  /* ---------- helpers ---------- */
   function bool(key, fallback) {
     const v = localStorage.getItem(key);
     return v === null ? fallback : v === "true";
+  }
+
+  function readableOn(hex) {
+    let h = String(hex || "").replace("#", "");
+    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+    if (h.length < 6) return "#ffffff";
+    const r = parseInt(h.slice(0, 2), 16);
+    const g = parseInt(h.slice(2, 4), 16);
+    const b = parseInt(h.slice(4, 6), 16);
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6 ? "#0f2233" : "#ffffff";
   }
 
   function loadSettings() {
@@ -58,9 +120,7 @@
     if (!THEMES[theme]) {
       theme = localStorage.getItem(STORAGE.darkMode) === "true" ? "dark" : DEFAULTS.theme;
     }
-
     const parsedFont = parseInt(localStorage.getItem(STORAGE.fontSize) || String(DEFAULTS.fontSize), 10);
-
     return {
       theme: theme,
       accent: localStorage.getItem(STORAGE.accent) || DEFAULTS.accent,
@@ -102,36 +162,238 @@
     else localStorage.removeItem(STORAGE.background);
   }
 
+  /* ---------- injected design system ---------- */
   function installStyles() {
     if (document.getElementById("nova-settings-overrides")) return;
 
     const style = document.createElement("style");
     style.id = "nova-settings-overrides";
-    style.textContent = [
-      ":root{--nova-accent:#0f75a8;--nova-accent-light:#a8d0e6;}",
-      "#openBtn,#novaSettingsButton,#novaNewTab,.nova-settings .nova-action,.nova-settings .nova-preset{background:var(--nova-accent)!important;}",
-      ".nova-tab.active,.suggestions div:hover,.suggestions .highlighted{background:var(--nova-accent)!important;}",
-      "input#urlInput:focus{outline:none!important;box-shadow:0 0 12px 3px #a8d0e6!important;transition:box-shadow 0.3s ease!important;}",
-      ".nova-settings button{margin-top:0!important;}",
-      "html.nova-no-motion *,html.nova-no-motion *::before,html.nova-no-motion *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important;}",
-      "html.nova-compact body{margin-top:16px!important;margin-bottom:16px!important;}",
-      "html.nova-compact #wikiSummary,html.nova-compact #relatedMedia{padding:12px!important;}",
-      "html.nova-compact .media-section img,html.nova-compact .media-section video{width:120px!important;height:84px!important;}",
-      "html.nova-high-contrast #wikiSummary,html.nova-high-contrast #relatedMedia,html.nova-high-contrast #dictionaryContainer,html.nova-high-contrast #timelineContainer{border:2px solid currentColor!important;}",
-      "html.nova-no-tabs #novaTabsBar{display:none!important;}"
-    ].join("");
+    style.textContent = `
+/* ===== legacy page overrides (kept) ===== */
+:root{--nova-accent:#0f75a8;--nova-accent-light:#a8d0e6;}
+#openBtn,#novaSettingsButton,#novaNewTab{background:var(--nova-accent)!important;}
+.nova-tab.active,.suggestions div:hover,.suggestions .highlighted{background:var(--nova-accent)!important;}
+input#urlInput:focus{outline:none!important;box-shadow:0 0 0 3px var(--ns-focus-ring,rgba(15,117,168,.35))!important;transition:box-shadow .3s ease!important;}
+html.nova-no-motion *,html.nova-no-motion *::before,html.nova-no-motion *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important;}
+html.nova-compact body{margin-top:16px!important;margin-bottom:16px!important;}
+html.nova-compact #wikiSummary,html.nova-compact #relatedMedia{padding:12px!important;}
+html.nova-compact .media-section img,html.nova-compact .media-section video{width:120px!important;height:84px!important;}
+html.nova-high-contrast #wikiSummary,html.nova-high-contrast #relatedMedia,html.nova-high-contrast #dictionaryContainer,html.nova-high-contrast #timelineContainer{border:2px solid currentColor!important;}
+html.nova-no-tabs #novaTabsBar{display:none!important;}
+
+/* ===== settings drawer chrome ===== */
+#novaSettingsBackdrop{
+  position:fixed;inset:0;z-index:2147483000;
+  background:rgba(6,20,34,.44);
+  -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
+  opacity:0;pointer-events:none;transition:opacity .4s ease;
+}
+#novaSettingsBackdrop.show{opacity:1;pointer-events:auto;}
+
+#novaSettingsPanel{
+  position:fixed!important;top:12px!important;right:12px!important;bottom:12px!important;left:auto!important;
+  height:auto!important;max-height:none!important;width:min(432px,calc(100vw - 24px))!important;
+  margin:0!important;padding:0!important;
+  border-radius:var(--ns-panel-radius,20px)!important;border:1px solid var(--ns-border,#e3eaf2)!important;
+  background:var(--ns-bg,#fff)!important;color:var(--ns-text,#122c40)!important;
+  box-shadow:0 24px 70px var(--ns-shadow,rgba(9,42,70,.3))!important;
+  display:flex!important;flex-direction:column!important;overflow:hidden!important;
+  transform:translateX(calc(100% + 48px));
+  transition:transform .5s cubic-bezier(.22,1,.36,1);
+  z-index:2147483001!important;opacity:1!important;visibility:visible!important;
+  color-scheme:var(--ns-scheme,light);
+  font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+#novaSettingsPanel.show{transform:translateX(0)!important;}
+
+#novaSettingsContent{flex:1 1 auto;min-height:0;display:flex;padding:0!important;margin:0!important;background:transparent!important;}
+
+#novaSettingsClose{
+  position:absolute!important;top:14px!important;right:14px!important;
+  width:34px!important;height:34px!important;min-width:0!important;padding:0!important;margin:0!important;
+  border-radius:50%!important;border:1px solid var(--ns-border,#e3eaf2)!important;
+  background:var(--ns-surface,#f4f7fb)!important;color:var(--ns-sub,#5f7688)!important;
+  font-size:15px!important;line-height:1!important;cursor:pointer;
+  display:grid!important;place-items:center!important;
+  transition:color .2s ease,border-color .2s ease,transform .3s ease;
+}
+#novaSettingsClose:hover{color:var(--ns-text)!important;border-color:var(--ns-border-strong)!important;transform:scale(1.1);}
+
+/* ===== layout ===== */
+.nova-settings{flex:1;min-width:0;display:flex;flex-direction:column;font-size:14px;}
+.nova-settings *,.nova-settings *::before,.nova-settings *::after{box-sizing:border-box;}
+.nova-settings h2{margin:0;}
+.nova-settings button{font-family:inherit;}
+
+.ns-header{flex:none;display:flex;align-items:center;gap:12px;padding:18px 52px 14px 20px;border-bottom:1px solid var(--ns-border-soft);}
+.ns-logo{width:38px;height:38px;flex:none;border-radius:12px;background:var(--nova-accent);color:var(--ns-on-accent);display:grid;place-items:center;box-shadow:0 6px 16px var(--ns-shadow-soft);}
+.ns-logo svg{width:19px;height:19px;}
+.ns-heading{min-width:0;}
+.ns-heading h2{font-size:16.5px;font-weight:700;letter-spacing:-.01em;}
+.ns-heading p{margin:1px 0 0;font-size:12px;color:var(--ns-sub);}
+.ns-version{margin-left:auto;flex:none;font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--ns-sub);border:1px solid var(--ns-border);background:var(--ns-surface);padding:3px 8px;border-radius:999px;}
+
+.ns-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:4px 20px 24px;scrollbar-width:thin;scrollbar-color:var(--ns-border-strong) transparent;}
+.ns-body::-webkit-scrollbar{width:10px;}
+.ns-body::-webkit-scrollbar-thumb{background:var(--ns-border-strong);border-radius:8px;border:3px solid var(--ns-bg);}
+.ns-body::-webkit-scrollbar-track{background:transparent;}
+
+@keyframes nsRise{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
+#novaSettingsPanel.show .ns-body > *{animation:nsRise .5s cubic-bezier(.22,1,.36,1) both;}
+#novaSettingsPanel.show .ns-body > *:nth-child(2){animation-delay:.05s}
+#novaSettingsPanel.show .ns-body > *:nth-child(3){animation-delay:.09s}
+#novaSettingsPanel.show .ns-body > *:nth-child(4){animation-delay:.13s}
+#novaSettingsPanel.show .ns-body > *:nth-child(5){animation-delay:.17s}
+#novaSettingsPanel.show .ns-body > *:nth-child(6){animation-delay:.21s}
+#novaSettingsPanel.show .ns-body > *:nth-child(7){animation-delay:.25s}
+#novaSettingsPanel.show .ns-body > *:nth-child(8){animation-delay:.29s}
+#novaSettingsPanel.show .ns-body > *:nth-child(9){animation-delay:.33s}
+#novaSettingsPanel.show .ns-body > *:nth-child(10){animation-delay:.37s}
+#novaSettingsPanel.show .ns-body > *:nth-child(11){animation-delay:.41s}
+#novaSettingsPanel.show .ns-body > *:nth-child(12){animation-delay:.45s}
+#novaSettingsPanel.show .ns-body > *:nth-child(13){animation-delay:.49s}
+#novaSettingsPanel.show .ns-body > *:nth-child(14){animation-delay:.53s}
+
+.ns-section-title{display:flex;align-items:center;gap:7px;margin:20px 2px 9px;font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--ns-sub);}
+.nova-settings .ns-section-title:first-child{margin-top:12px;}
+.ns-section-title svg{width:13px;height:13px;flex:none;}
+
+/* ===== theme cards ===== */
+.ns-themes{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.ns-theme-card{appearance:none;border:1px solid var(--ns-border);background:var(--ns-surface);border-radius:var(--ns-card-radius,14px);padding:7px 7px 8px;cursor:pointer;display:flex;flex-direction:column;gap:7px;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;}
+.ns-theme-card:hover{transform:translateY(-2px);box-shadow:0 8px 18px var(--ns-shadow-soft);}
+.ns-theme-card.is-active{border-color:var(--nova-accent);box-shadow:0 0 0 2px var(--ns-focus-ring);}
+.ns-theme-preview{position:relative;height:46px;border-radius:9px;background:var(--tc-bg);border:1px solid rgba(0,0,0,.15);display:flex;flex-direction:column;justify-content:center;gap:5px;padding:0 10px;overflow:hidden;}
+.ns-theme-line{height:4px;border-radius:99px;background:var(--tc-fg);opacity:.9;width:85%;}
+.ns-theme-line.short{width:55%;opacity:.45;}
+.ns-theme-dot{position:absolute;top:7px;right:7px;width:9px;height:9px;border-radius:50%;background:var(--tc-accent);box-shadow:0 0 0 1.5px rgba(255,255,255,.35);}
+.ns-theme-name{font-size:10.5px;font-weight:700;color:var(--ns-sub);text-align:center;letter-spacing:.02em;}
+.ns-theme-card.is-active .ns-theme-name{color:var(--nova-accent);}
+
+/* ===== cards / groups / rows ===== */
+.ns-duo{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:9px;}
+.ns-card{background:var(--ns-surface);border:1px solid var(--ns-border);border-radius:var(--ns-card-radius,14px);padding:12px 13px 13px;min-width:0;}
+.ns-card-label{font-size:10.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ns-sub);}
+
+.ns-group{background:var(--ns-surface);border:1px solid var(--ns-border);border-radius:var(--ns-card-radius,14px);overflow:hidden;}
+.ns-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 14px;cursor:pointer;transition:background .16s ease;}
+.ns-row:hover{background:var(--ns-hover);}
+.ns-row + .ns-row{border-top:1px solid var(--ns-border-soft);}
+.ns-row-text{display:flex;flex-direction:column;gap:1px;min-width:0;}
+.ns-row-title{font-size:13.5px;font-weight:600;}
+.ns-row-desc{font-size:11.5px;color:var(--ns-sub);line-height:1.35;}
+
+/* ===== switch ===== */
+.ns-switch{position:relative;flex:none;width:40px;height:22px;}
+.ns-switch input{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;cursor:pointer;}
+.ns-switch i{position:absolute;inset:0;border-radius:999px;background:var(--ns-switch-off);transition:background .22s ease;pointer-events:none;}
+.ns-switch i::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.35);transition:transform .25s cubic-bezier(.22,1,.36,1);}
+.ns-switch input:checked + i{background:var(--nova-accent);}
+.ns-switch input:checked + i::after{transform:translateX(18px);}
+.ns-switch input:focus-visible + i{box-shadow:0 0 0 3px var(--ns-focus-ring);}
+
+/* ===== accent swatches ===== */
+.ns-accents{display:flex;align-items:center;gap:7px;margin-top:11px;flex-wrap:wrap;}
+.ns-swatch{position:relative;width:24px;height:24px;flex:none;border-radius:50%;border:none;padding:0;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(0,0,0,.14);transition:transform .16s ease,box-shadow .16s ease;}
+.ns-swatch:hover{transform:scale(1.14);}
+.ns-swatch.is-active{box-shadow:0 0 0 2px var(--ns-bg),0 0 0 4px var(--nova-accent);}
+.ns-swatch-custom{display:grid;place-items:center;background:var(--nova-accent);}
+.ns-swatch-custom svg{width:11px;height:11px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.35));}
+.ns-swatch-custom input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+
+/* ===== font slider ===== */
+.ns-font-row{display:flex;align-items:center;gap:10px;margin-top:11px;}
+.ns-font-aa{flex:none;width:34px;height:34px;border-radius:10px;background:var(--nova-accent);color:var(--ns-on-accent);display:grid;place-items:center;font-weight:700;transition:font-size .15s ease;}
+.ns-slider{flex:1;display:flex;flex-direction:column;gap:7px;min-width:0;}
+.ns-slider input[type="range"]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:99px;background:linear-gradient(to right,var(--nova-accent) var(--fill,40%),var(--ns-border-strong) var(--fill,40%));outline:none;cursor:pointer;}
+.ns-slider input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid var(--nova-accent);box-shadow:0 1px 4px rgba(0,0,0,.3);transition:transform .15s ease;}
+.ns-slider input[type="range"]::-webkit-slider-thumb:hover{transform:scale(1.15);}
+.ns-slider input[type="range"]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid var(--nova-accent);box-shadow:0 1px 4px rgba(0,0,0,.3);}
+.ns-slider-meta{display:flex;justify-content:space-between;align-items:center;font-size:10.5px;color:var(--ns-sub);font-variant-numeric:tabular-nums;}
+.ns-slider-meta b{color:var(--ns-text);font-weight:700;}
+
+/* ===== background uploader ===== */
+.ns-bg-drop{margin-top:9px;display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:var(--ns-card-radius,14px);border:1.5px dashed var(--ns-border-strong);background:var(--ns-surface);cursor:pointer;transition:border-color .2s ease,background .2s ease;}
+.ns-bg-drop:hover{border-color:var(--nova-accent);background:var(--ns-hover);}
+.ns-bg-icon{flex:none;width:34px;height:34px;border-radius:10px;background:var(--ns-hover);color:var(--nova-accent);display:grid;place-items:center;}
+.ns-bg-icon svg{width:17px;height:17px;}
+.ns-bg-texts{display:flex;flex-direction:column;min-width:0;}
+.ns-bg-title{font-size:13px;font-weight:600;}
+.ns-bg-sub{font-size:11.5px;color:var(--ns-sub);}
+.ns-bg-active{margin-top:9px;display:flex;align-items:center;gap:12px;padding:10px;border-radius:var(--ns-card-radius,14px);border:1px solid var(--ns-border);background:var(--ns-surface);}
+.ns-bg-active[hidden]{display:none!important;}
+.ns-bg-active img{width:74px;height:46px;object-fit:cover;border-radius:9px;border:1px solid var(--ns-border-strong);flex:none;}
+.ns-bg-active-info{display:flex;flex-direction:column;gap:7px;min-width:0;}
+
+/* ===== buttons ===== */
+.ns-btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:9px 14px;border-radius:10px;border:1px solid var(--ns-border);background:var(--ns-surface);color:var(--ns-text);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;transition:transform .16s ease,box-shadow .16s ease,background .16s ease,border-color .16s ease,color .16s ease;}
+.ns-btn svg{width:14px;height:14px;flex:none;}
+.ns-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px var(--ns-shadow-soft);border-color:var(--ns-border-strong);}
+.ns-btn:active{transform:translateY(0);box-shadow:none;}
+.ns-btn.primary{background:var(--nova-accent);border-color:transparent;color:var(--ns-on-accent);}
+.ns-btn.primary:hover{box-shadow:0 6px 18px var(--ns-focus-ring);}
+.ns-btn.quiet{background:transparent;border-color:transparent;color:var(--ns-sub);}
+.ns-btn.quiet:hover{color:var(--ns-danger);background:var(--ns-hover);border-color:transparent;box-shadow:none;}
+.ns-btn.block{width:100%;justify-content:flex-start;}
+
+/* ===== data & privacy ===== */
+.ns-note{margin:0 2px 10px;font-size:11.5px;color:var(--ns-sub);line-height:1.45;}
+.ns-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.ns-storage{margin-top:12px;padding:12px 14px;border-radius:var(--ns-card-radius,14px);background:var(--ns-surface);border:1px solid var(--ns-border);}
+.ns-storage-bar{height:5px;border-radius:99px;background:var(--ns-border);overflow:hidden;}
+.ns-storage-bar i{display:block;height:100%;width:0%;border-radius:99px;background:var(--nova-accent);transition:width .5s cubic-bezier(.22,1,.36,1);}
+.ns-storage-text{margin-top:7px;font-size:11.5px;color:var(--ns-sub);font-variant-numeric:tabular-nums;}
+
+/* ===== footer + toast ===== */
+.ns-footer{flex:none;display:flex;align-items:center;gap:10px;padding:13px 20px calc(13px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--ns-border);background:var(--ns-footer);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);}
+.ns-status{position:absolute;right:18px;bottom:78px;max-width:75%;padding:9px 15px;border-radius:999px;background:var(--ns-text);color:var(--ns-bg);font-size:12.5px;font-weight:600;box-shadow:0 10px 30px var(--ns-shadow);opacity:0;transform:translateY(8px) scale(.96);pointer-events:none;transition:opacity .3s ease,transform .3s cubic-bezier(.22,1,.36,1);z-index:5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ns-status.visible{opacity:1;transform:none;}
+
+.nova-settings :focus-visible,#novaSettingsClose:focus-visible{outline:2px solid var(--nova-accent);outline-offset:2px;}
+html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:1.5px;}
+
+@media (max-width:520px){
+  #novaSettingsPanel{top:0!important;right:0!important;bottom:0!important;left:0!important;width:100vw!important;border-radius:0!important;border:none!important;transform:translateX(100%);}
+}
+@media (prefers-reduced-motion:reduce){
+  #novaSettingsPanel,#novaSettingsBackdrop,.ns-status{transition:none!important;}
+  #novaSettingsPanel.show .ns-body > *{animation:none!important;}
+}`;
     document.head.appendChild(style);
   }
 
+  /* ---------- apply settings ---------- */
   function applySettings(s) {
     installStyles();
 
     const theme = THEMES[s.theme] || THEMES.classic;
+    const pal = PANEL[s.theme] || PANEL.classic;
+    const rs = document.documentElement.style;
 
-    document.documentElement.style.setProperty("--nova-accent", s.accent);
-    document.documentElement.style.setProperty("--nova-accent-light", s.accent + "66");
+    rs.setProperty("--nova-accent", s.accent);
+    rs.setProperty("--nova-accent-light", s.accent + "66");
+    rs.setProperty("--ns-on-accent", readableOn(s.accent));
+    rs.setProperty("--ns-focus-ring", s.accent + "55");
+    rs.setProperty("--ns-scheme", s.theme === "dark" ? "dark" : "light");
+    rs.setProperty("--ns-panel-radius", s.theme === "retro" ? "6px" : "20px");
+    rs.setProperty("--ns-card-radius", s.theme === "retro" ? "6px" : "14px");
+
+    rs.setProperty("--ns-bg", pal.bg);
+    rs.setProperty("--ns-surface", pal.surface);
+    rs.setProperty("--ns-hover", pal.hover);
+    rs.setProperty("--ns-text", pal.text);
+    rs.setProperty("--ns-sub", pal.sub);
+    rs.setProperty("--ns-border", pal.border);
+    rs.setProperty("--ns-border-soft", pal.borderSoft);
+    rs.setProperty("--ns-border-strong", pal.borderStrong);
+    rs.setProperty("--ns-shadow", pal.shadow);
+    rs.setProperty("--ns-shadow-soft", pal.shadowSoft);
+    rs.setProperty("--ns-footer", pal.footer);
+    rs.setProperty("--ns-switch-off", pal.switchOff);
+    rs.setProperty("--ns-danger", pal.danger);
+
     document.documentElement.style.fontSize = s.fontSize + "px";
-
     document.body.style.backgroundColor = theme.bg;
     document.body.style.color = theme.text;
 
@@ -157,22 +419,14 @@
     if (tabs) tabs.style.display = s.showTabs ? "" : "none";
   }
 
-  function clearHistory() {
-    localStorage.removeItem("nova_history");
-  }
+  /* ---------- data helpers (unchanged) ---------- */
+  function clearHistory() { localStorage.removeItem("nova_history"); }
 
   function clearSuggestionCache() {
-    Object.keys(localStorage).filter(function (k) {
-      return k.indexOf("wiki_suggest_") === 0;
-    }).forEach(function (k) {
-      localStorage.removeItem(k);
-    });
-
-    Object.keys(sessionStorage).filter(function (k) {
-      return k.indexOf("wiki_suggest_") === 0;
-    }).forEach(function (k) {
-      sessionStorage.removeItem(k);
-    });
+    Object.keys(localStorage).filter(function (k) { return k.indexOf("wiki_suggest_") === 0; })
+      .forEach(function (k) { localStorage.removeItem(k); });
+    Object.keys(sessionStorage).filter(function (k) { return k.indexOf("wiki_suggest_") === 0; })
+      .forEach(function (k) { sessionStorage.removeItem(k); });
   }
 
   function storageSize() {
@@ -197,21 +451,19 @@
       settings: loadSettings(),
       history: JSON.parse(localStorage.getItem("nova_history") || "[]")
     };
-
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = "nova-backup.json";
+    link.download = "nova-backup-" + new Date().toISOString().slice(0, 10) + ".json";
     document.body.appendChild(link);
     link.click();
     link.remove();
     setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
   }
 
-  function importBackup(file, status) {
+  function importBackup(file, notify) {
     const reader = new FileReader();
-
     reader.onload = function () {
       try {
         const data = JSON.parse(String(reader.result || ""));
@@ -222,36 +474,45 @@
         if (typeof incoming.background === "string") localStorage.setItem(STORAGE.background, incoming.background);
         if (Number.isFinite(Number(incoming.fontSize))) localStorage.setItem(STORAGE.fontSize, String(incoming.fontSize));
 
-        [
-          "audioPreview","animations","compact","highContrast","suggestions","webResults",
-          "autoFocus","openLinksNewTab","saveHistory","restoreSearch",
-          "smoothScroll","showTabs"
+        ["audioPreview","animations","compact","highContrast","suggestions","webResults",
+         "autoFocus","openLinksNewTab","saveHistory","restoreSearch","smoothScroll","showTabs"
         ].forEach(function (key) {
-          if (typeof incoming[key] === "boolean") {
-            localStorage.setItem(STORAGE[key], String(incoming[key]));
-          }
+          if (typeof incoming[key] === "boolean") localStorage.setItem(STORAGE[key], String(incoming[key]));
         });
 
-        if (Array.isArray(data.history)) {
-          localStorage.setItem("nova_history", JSON.stringify(data.history));
-        }
+        if (Array.isArray(data.history)) localStorage.setItem("nova_history", JSON.stringify(data.history));
 
-        status.textContent = "Backup imported. Reloading...";
-        setTimeout(function () { location.reload(); }, 700);
-      } catch {
-        status.textContent = "Invalid Nova backup.";
+        notify("Backup imported — reloading…");
+        setTimeout(function () { location.reload(); }, 800);
+      } catch (err) {
+        notify("Invalid Nova backup.");
       }
     };
-
     reader.readAsText(file);
   }
 
-  function resetEverything(status) {
+  function resetEverything(notify) {
     if (!confirm("Reset Nova settings, history, and local preferences?")) return;
     localStorage.clear();
     sessionStorage.clear();
-    status.textContent = "Everything cleared. Reloading...";
-    setTimeout(function () { location.reload(); }, 700);
+    notify("Everything cleared — reloading…");
+    setTimeout(function () { location.reload(); }, 800);
+  }
+
+  /* ---------- render ---------- */
+  function rowHTML(id, title, desc) {
+    return '<label class="ns-row">' +
+      '<span class="ns-row-text"><span class="ns-row-title">' + title + '</span>' +
+      (desc ? '<span class="ns-row-desc">' + desc + '</span>' : '') +
+      '</span><span class="ns-switch"><input type="checkbox" id="' + id + '"><i></i></span></label>';
+  }
+
+  function themeCardHTML(key) {
+    const t = THEMES[key];
+    return '<button type="button" class="ns-theme-card" data-theme="' + key + '" ' +
+      'style="--tc-bg:' + t.bg + ';--tc-fg:' + t.text + ';--tc-accent:' + THEME_ACCENTS[key] + '">' +
+      '<span class="ns-theme-preview"><span class="ns-theme-dot"></span><span class="ns-theme-line"></span><span class="ns-theme-line short"></span></span>' +
+      '<span class="ns-theme-name">' + t.name + '</span></button>';
   }
 
   function renderSettings(container) {
@@ -259,267 +520,320 @@
 
     const s = loadSettings();
 
-    container.innerHTML = [
-      '<div class="nova-settings">',
-      '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">',
-      '<div><h2 style="margin:0">Nova Settings</h2><div style="font-size:12px;opacity:.7">Made by Dylan.H :3</div></div>',
-      '<span style="font-size:12px;opacity:.6">v2</span>',
-      '</div>',
+    container.innerHTML = `
+<div class="nova-settings">
+  <header class="ns-header">
+    <span class="ns-logo">${I.spark}</span>
+    <span class="ns-heading">
+      <h2>Nova Settings</h2>
+      <p>Made by Dylan.H&nbsp;:3</p>
+    </span>
+    <span class="ns-version">V2</span>
+  </header>
 
-      '<div style="margin-top:16px"><strong>Appearance</strong>',
-      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">',
-      '<button type="button" class="nova-preset" data-theme="classic">Classic Blue</button>',
-      '<button type="button" class="nova-preset" data-theme="dark">Midnight</button>',
-      '<button type="button" class="nova-preset" data-theme="light">Light</button>',
-      '<button type="button" class="nova-preset" data-theme="retro">Retro</button>',
-      '</div>',
+  <div class="ns-body">
+    <div class="ns-section-title">${I.sliders} Appearance</div>
+    <div class="ns-themes">${["classic","dark","light","retro"].map(themeCardHTML).join("")}</div>
 
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">',
-      '<label style="display:flex;align-items:center;gap:8px">Accent <input id="ns-accent" type="color" style="width:42px;height:34px;padding:0;border:0"></label>',
-      '<label style="display:flex;align-items:center;gap:8px">Font <input id="ns-font" type="number" min="10" max="48" style="width:72px;padding:7px;border-radius:8px;border:1px solid #666"></label>',
-      '</div>',
+    <div class="ns-duo">
+      <div class="ns-card">
+        <div class="ns-card-label">Accent</div>
+        <div class="ns-accents" id="ns-accents"></div>
+      </div>
+      <div class="ns-card">
+        <div class="ns-card-label">Font size</div>
+        <div class="ns-font-row">
+          <span class="ns-font-aa" id="ns-font-aa">Aa</span>
+          <span class="ns-slider">
+            <input type="range" id="ns-font" min="10" max="48" step="1">
+            <span class="ns-slider-meta"><span>10</span><b id="ns-font-val"></b><span>48</span></span>
+          </span>
+        </div>
+      </div>
+    </div>
 
-      '<label style="display:flex;align-items:center;gap:8px;margin-top:9px"><input id="ns-compact" type="checkbox"> Compact mode</label>',
-      '<label style="display:flex;align-items:center;gap:8px;margin-top:8px"><input id="ns-motion" type="checkbox"> Animations & effects</label>',
-      '<label style="display:flex;align-items:center;gap:8px;margin-top:8px"><input id="ns-contrast" type="checkbox"> High contrast</label>',
+    <label class="ns-bg-drop" id="ns-bg-drop">
+      <input type="file" id="ns-bg-file" accept="image/*" hidden>
+      <span class="ns-bg-icon">${I.image}</span>
+      <span class="ns-bg-texts">
+        <span class="ns-bg-title" id="ns-bg-title">Add a background image</span>
+        <span class="ns-bg-sub">Stored locally — never uploaded</span>
+      </span>
+    </label>
 
-      '<div style="margin-top:10px"><input id="ns-bg-file" type="file" accept="image/*">',
-      '<button id="ns-clear-bg" type="button" class="nova-action">Classic background</button>',
-      '<img id="ns-bg-preview" alt="Background preview" style="display:none;width:100%;height:72px;object-fit:cover;border-radius:8px;margin-top:8px"></div>',
-      '</div>',
+    <div class="ns-bg-active" id="ns-bg-active" hidden>
+      <img id="ns-bg-img" alt="Current background">
+      <span class="ns-bg-active-info">
+        <span class="ns-row-title">Custom background</span>
+        <span><button type="button" class="ns-btn" id="ns-clear-bg">${I.trash} Remove</button></span>
+      </span>
+    </div>
 
-      '<div style="border-top:1px solid rgba(255,255,255,.14);margin-top:16px;padding-top:14px"><strong>Search & behavior</strong>',
-      '<label style="display:flex;align-items:center;gap:8px;margin-top:9px"><input id="ns-suggestions" type="checkbox"> Search suggestions</label>',
-      '<label style="display:flex;align-items:center;gap:8px;margin-top:8px"><input id="ns-web-results" type="checkbox"> Web search results</label>',
-      '<label style="display:flex;align-items:center;gap:8px;margin-top:8px"><input id="ns-autofocus" type="checkbox"> Focus search box on startup</label>',
-      '<label style="display:flex;align-items:center;gap:8px;margin-top:8px"><input id="ns-newtab" type="checkbox"> Open websites in a new tab</label>',
-      '<label style="display:flex;align-items:center;gap:8px;margin-top:8px"><input id="ns-lastsearch" type="checkbox"> Remember last search</label>',
-      '<label style="display:flex;align-items:center;gap:8px;margin-top:8px"><input id="ns-history" type="checkbox"> Save search history</label>',
-      '<label style="display:flex;align-items:center;gap:8px;margin-top:8px"><input id="ns-smooth" type="checkbox"> Smooth scrolling</label>',
-      '<label style="display:flex;align-items:center;gap:8px;margin-top:8px"><input id="ns-tabs" type="checkbox"> Show tab bar</label>',
-      '</div>',
+    <div class="ns-group" style="margin-top:9px">
+      ${rowHTML("ns-compact", "Compact mode", "Tighter spacing and smaller media")}
+      ${rowHTML("ns-motion", "Animations & effects", "Transitions across the interface")}
+      ${rowHTML("ns-contrast", "High contrast", "Bolder borders for readability")}
+    </div>
 
-      '<div style="border-top:1px solid rgba(255,255,255,.14);margin-top:16px;padding-top:14px"><strong>Data & privacy</strong>',
-      '<div style="font-size:12px;opacity:.7;margin-top:5px">Preferences, history, and backups stay in this browser.</div>',
-      '<div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:10px">',
-      '<button id="ns-clear-history" type="button" class="nova-action">Clear history</button>',
-      '<button id="ns-clear-cache" type="button" class="nova-action">Clear suggestion cache</button>',
-      '<button id="ns-backup" type="button" class="nova-action">Export backup</button>',
-      '<button id="ns-import-btn" type="button" class="nova-action">Import backup</button>',
-      '<input id="ns-import" type="file" accept="application/json,.json" hidden>',
-      '</div>',
-      '<div id="ns-storage" style="font-size:12px;opacity:.7;margin-top:9px"></div>',
-      '</div>',
+    <div class="ns-section-title">${I.search} Search &amp; behavior</div>
+    <div class="ns-group">
+      ${rowHTML("ns-suggestions", "Search suggestions", "Wikipedia suggestions while you type")}
+      ${rowHTML("ns-web-results", "Web search results", "Show matching links from the web")}
+      ${rowHTML("ns-autofocus", "Focus search on startup", "Cursor ready in the search box")}
+      ${rowHTML("ns-newtab", "Open sites in a new tab", "Keep Nova running in this tab")}
+      ${rowHTML("ns-lastsearch", "Remember last search", "Restore your previous query")}
+      ${rowHTML("ns-history", "Save search history", "Keep a local list of searches")}
+      ${rowHTML("ns-smooth", "Smooth scrolling", "Animated page scrolling")}
+      ${rowHTML("ns-tabs", "Show tab bar", "Display the Nova tab strip")}
+    </div>
 
-      '<div style="border-top:1px solid rgba(255,255,255,.14);margin-top:16px;padding-top:14px"><strong>Audio</strong>',
-      '<label style="display:flex;align-items:center;gap:8px;margin-top:9px"><input id="ns-audio" type="checkbox"> Audio previews</label>',
-      '</div>',
+    <div class="ns-section-title">${I.shield} Data &amp; privacy</div>
+    <p class="ns-note">Everything stays on this device — preferences, history, and backups never leave your browser.</p>
+    <div class="ns-actions">
+      <button type="button" class="ns-btn block" id="ns-clear-history">${I.trash} Clear history</button>
+      <button type="button" class="ns-btn block" id="ns-clear-cache">${I.eraser} Clear cache</button>
+      <button type="button" class="ns-btn block" id="ns-backup">${I.download} Export backup</button>
+      <button type="button" class="ns-btn block" id="ns-import-btn">${I.upload} Import backup</button>
+      <input type="file" id="ns-import" accept="application/json,.json" hidden>
+    </div>
+    <div class="ns-storage">
+      <div class="ns-storage-bar"><i id="ns-storage-fill"></i></div>
+      <div class="ns-storage-text" id="ns-storage"></div>
+    </div>
 
-      '<div style="display:flex;gap:8px;align-items:center;margin-top:18px">',
-      '<button id="ns-save" type="button" class="nova-action" style="font-weight:700">Save settings</button>',
-      '<button id="ns-reset" type="button">Reset everything</button>',
-      '<span id="ns-status" style="font-size:12px;opacity:.75"></span>',
-      '</div>',
-      '</div>'
-    ].join("");
+    <div class="ns-section-title">${I.volume} Audio</div>
+    <div class="ns-group">
+      ${rowHTML("ns-audio", "Audio previews", "Play samples directly from results")}
+    </div>
+    <div style="height:6px"></div>
+  </div>
 
-    const q = function (selector) { return container.querySelector(selector); };
+  <footer class="ns-footer">
+    <button type="button" class="ns-btn primary" id="ns-save">${I.check} Save settings</button>
+    <button type="button" class="ns-btn quiet" id="ns-reset">${I.undo} Reset</button>
+  </footer>
 
-    const accent = q("#ns-accent");
+  <span class="ns-status" id="ns-status" role="status" aria-live="polite"></span>
+</div>`;
+
+    const q = function (sel) { return container.querySelector(sel); };
+    const qa = function (sel) { return container.querySelectorAll(sel); };
+
     const font = q("#ns-font");
-    const compact = q("#ns-compact");
-    const motion = q("#ns-motion");
-    const contrast = q("#ns-contrast");
-    const suggestions = q("#ns-suggestions");
-    const webResults = q("#ns-web-results");
-    const autoFocus = q("#ns-autofocus");
-    const newTab = q("#ns-newtab");
-    const lastSearch = q("#ns-lastsearch");
-    const history = q("#ns-history");
-    const smooth = q("#ns-smooth");
-    const tabs = q("#ns-tabs");
-    const audio = q("#ns-audio");
+    const status = q("#ns-status");
+    const storage = q("#ns-storage");
     const bgFile = q("#ns-bg-file");
-    const bgPreview = q("#ns-bg-preview");
+    const bgTitle = q("#ns-bg-title");
+    const bgActive = q("#ns-bg-active");
+    const bgImg = q("#ns-bg-img");
     const clearBg = q("#ns-clear-bg");
     const save = q("#ns-save");
     const reset = q("#ns-reset");
-    const status = q("#ns-status");
-    const storage = q("#ns-storage");
 
-    accent.value = s.accent;
-    font.value = s.fontSize;
-    compact.checked = s.compact;
-    motion.checked = s.animations;
-    contrast.checked = s.highContrast;
-    suggestions.checked = s.suggestions;
-    webResults.checked = s.webResults;
-    autoFocus.checked = s.autoFocus;
-    newTab.checked = s.openLinksNewTab;
-    lastSearch.checked = s.restoreSearch;
-    history.checked = s.saveHistory;
-    smooth.checked = s.smoothScroll;
-    tabs.checked = s.showTabs;
-    audio.checked = s.audioPreview;
-
-    if (s.background) {
-      bgPreview.src = s.background;
-      bgPreview.style.display = "block";
-    }
-
-    function updateStorage() {
-      let historyCount = 0;
-      try {
-        historyCount = JSON.parse(localStorage.getItem("nova_history") || "[]").length;
-      } catch {}
-      storage.textContent = "Storage: " + prettyBytes(storageSize()) + " • History: " + historyCount + " entries";
-    }
-
+    /* --- toast --- */
+    let statusTimer = null;
     function msg(text) {
       status.textContent = text;
-      setTimeout(function () {
-        if (status.textContent === text) status.textContent = "";
-      }, 1400);
+      status.classList.add("visible");
+      if (statusTimer) clearTimeout(statusTimer);
+      statusTimer = setTimeout(function () { status.classList.remove("visible"); }, 1800);
     }
 
-    applySettings(s);
-    updateStorage();
+    /* --- accent swatches --- */
+    const accentsWrap = q("#ns-accents");
+    accentsWrap.innerHTML =
+      ACCENT_PRESETS.map(function (c) {
+        return '<button type="button" class="ns-swatch" data-color="' + c + '" style="background:' + c + '" aria-label="Accent ' + c + '"></button>';
+      }).join("") +
+      '<label class="ns-swatch ns-swatch-custom" title="Custom color">' +
+      '<input type="color" id="ns-accent" value="' + s.accent + '">' + I.plus + '</label>';
 
-    accent.addEventListener("input", function () {
-      s.accent = accent.value;
-      applySettings(s);
-      saveSettings(s);
-    });
+    const accentInput = q("#ns-accent");
 
-    font.addEventListener("change", function () {
-      s.fontSize = Math.max(10, Math.min(48, parseInt(font.value || "16", 10)));
-      font.value = s.fontSize;
-      applySettings(s);
-      saveSettings(s);
-    });
+    function refreshAccentsUI() {
+      const lower = String(s.accent).toLowerCase();
+      let presetHit = false;
+      qa(".ns-swatch[data-color]").forEach(function (sw) {
+        const hit = sw.dataset.color.toLowerCase() === lower;
+        if (hit) presetHit = true;
+        sw.classList.toggle("is-active", hit);
+      });
+      const custom = q(".ns-swatch-custom");
+      if (custom) {
+        custom.classList.toggle("is-active", !presetHit);
+        custom.style.background = s.accent;
+        custom.style.color = readableOn(s.accent);
+        if (accentInput && accentInput.value.toLowerCase() !== lower) accentInput.value = s.accent;
+      }
+    }
+    refreshAccentsUI();
 
-    compact.addEventListener("change", function () {
-      s.compact = compact.checked;
-      applySettings(s);
-      saveSettings(s);
-    });
+    /* --- font slider --- */
+    function syncFont() {
+      const v = s.fontSize;
+      font.style.setProperty("--fill", ((v - 10) / 38 * 100) + "%");
+      q("#ns-font-val").textContent = v + "px";
+      q("#ns-font-aa").style.fontSize = Math.min(26, v) + "px";
+    }
+    font.value = s.fontSize;
+    syncFont();
 
-    motion.addEventListener("change", function () {
-      s.animations = motion.checked;
-      applySettings(s);
-      saveSettings(s);
-    });
-
-    contrast.addEventListener("change", function () {
-      s.highContrast = contrast.checked;
-      applySettings(s);
-      saveSettings(s);
-    });
-
-    suggestions.addEventListener("change", function () { s.suggestions = suggestions.checked; saveSettings(s); });
-    webResults.addEventListener("change", function () {
-      s.webResults = webResults.checked;
-      saveSettings(s);
-      const box = document.getElementById("webSearchContainer");
-      if (box && !s.webResults) box.classList.remove("visible");
-    });
-    autoFocus.addEventListener("change", function () { s.autoFocus = autoFocus.checked; saveSettings(s); });
-    newTab.addEventListener("change", function () { s.openLinksNewTab = newTab.checked; saveSettings(s); });
-    lastSearch.addEventListener("change", function () { s.restoreSearch = lastSearch.checked; saveSettings(s); });
-    history.addEventListener("change", function () { s.saveHistory = history.checked; saveSettings(s); });
-
-    smooth.addEventListener("change", function () {
-      s.smoothScroll = smooth.checked;
-      applySettings(s);
-      saveSettings(s);
-    });
-
-    tabs.addEventListener("change", function () {
-      s.showTabs = tabs.checked;
-      applySettings(s);
-      saveSettings(s);
-    });
-
-    audio.addEventListener("change", function () { s.audioPreview = audio.checked; saveSettings(s); });
-
-    bgFile.addEventListener("change", function (event) {
-      const file = event.target.files && event.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function () {
-        s.background = String(reader.result || "");
-        bgPreview.src = s.background;
-        bgPreview.style.display = "block";
-        applySettings(s);
-        saveSettings(s);
-      };
-      reader.readAsDataURL(file);
-    });
-
-    clearBg.addEventListener("click", function () {
-      s.background = "";
-      bgPreview.removeAttribute("src");
-      bgPreview.style.display = "none";
-      applySettings(s);
-      saveSettings(s);
-    });
-
-    container.querySelectorAll(".nova-preset").forEach(function (button) {
-      button.addEventListener("click", function () {
-        s.theme = button.dataset.theme;
-        if (s.theme === "classic") s.accent = "#0f75a8";
-        if (s.theme === "dark") s.accent = "#2d9cdb";
-        if (s.theme === "light") s.accent = "#1681b8";
-        if (s.theme === "retro") s.accent = "#000080";
-        accent.value = s.accent;
+    /* --- theme cards --- */
+    qa(".ns-theme-card").forEach(function (card) {
+      card.classList.toggle("is-active", card.dataset.theme === s.theme);
+      card.addEventListener("click", function () {
+        s.theme = card.dataset.theme;
+        s.accent = THEME_ACCENTS[s.theme] || s.accent;
+        qa(".ns-theme-card").forEach(function (c) { c.classList.toggle("is-active", c === card); });
+        refreshAccentsUI();
         applySettings(s);
         saveSettings(s);
         msg((THEMES[s.theme] || THEMES.classic).name + " applied");
       });
     });
 
+    /* --- swatch + custom picker --- */
+    qa(".ns-swatch[data-color]").forEach(function (sw) {
+      sw.addEventListener("click", function () {
+        s.accent = sw.dataset.color;
+        refreshAccentsUI();
+        applySettings(s);
+        saveSettings(s);
+      });
+    });
+    accentInput.addEventListener("input", function () {
+      s.accent = accentInput.value;
+      refreshAccentsUI();
+      applySettings(s);
+      saveSettings(s);
+    });
+
+    /* --- font --- */
+    font.addEventListener("input", function () {
+      s.fontSize = Math.max(10, Math.min(48, parseInt(font.value, 10) || 16));
+      font.value = s.fontSize;
+      syncFont();
+      applySettings(s);
+      saveSettings(s);
+    });
+
+    /* --- toggles --- */
+    function toggle(id, key, after) {
+      const el = q(id);
+      if (!el) return;
+      el.checked = !!s[key];
+      el.addEventListener("change", function () {
+        s[key] = el.checked;
+        saveSettings(s);
+        if (after) after();
+      });
+    }
+    toggle("#ns-compact", "compact", function () { applySettings(s); });
+    toggle("#ns-motion", "animations", function () { applySettings(s); });
+    toggle("#ns-contrast", "highContrast", function () { applySettings(s); });
+    toggle("#ns-suggestions", "suggestions");
+    toggle("#ns-web-results", "webResults", function () {
+      const box = document.getElementById("webSearchContainer");
+      if (box && !s.webResults) box.classList.remove("visible");
+    });
+    toggle("#ns-autofocus", "autoFocus");
+    toggle("#ns-newtab", "openLinksNewTab");
+    toggle("#ns-lastsearch", "restoreSearch");
+    toggle("#ns-history", "saveHistory");
+    toggle("#ns-smooth", "smoothScroll", function () { applySettings(s); });
+    toggle("#ns-tabs", "showTabs", function () { applySettings(s); });
+    toggle("#ns-audio", "audioPreview");
+
+    /* --- background --- */
+    function syncBg() {
+      if (s.background) {
+        bgActive.hidden = false;
+        bgImg.src = s.background;
+        bgTitle.textContent = "Replace background image";
+      } else {
+        bgActive.hidden = true;
+        bgImg.removeAttribute("src");
+        bgTitle.textContent = "Add a background image";
+      }
+    }
+    syncBg();
+
+    bgFile.addEventListener("change", function (event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function () {
+        s.background = String(reader.result || "");
+        applySettings(s);
+        saveSettings(s);
+        syncBg();
+        msg("Background updated");
+      };
+      reader.readAsDataURL(file);
+    });
+
+    clearBg.addEventListener("click", function () {
+      s.background = "";
+      applySettings(s);
+      saveSettings(s);
+      syncBg();
+      msg("Background removed");
+    });
+
+    /* --- storage meter --- */
+    function updateStorage() {
+      let historyCount = 0;
+      try { historyCount = JSON.parse(localStorage.getItem("nova_history") || "[]").length; } catch (err) {}
+      const total = storageSize();
+      storage.textContent = prettyBytes(total) + " of local storage used · " +
+        historyCount + (historyCount === 1 ? " history entry" : " history entries");
+      const fill = q("#ns-storage-fill");
+      if (fill) fill.style.width = Math.max(2, Math.min(100, (total / (5 * 1024 * 1024)) * 100)).toFixed(1) + "%";
+    }
+
+    applySettings(s);
+    updateStorage();
+
+    /* --- actions --- */
     q("#ns-clear-history").addEventListener("click", function () {
-      clearHistory();
-      updateStorage();
-      msg("History cleared");
+      clearHistory(); updateStorage(); msg("History cleared");
     });
-
     q("#ns-clear-cache").addEventListener("click", function () {
-      clearSuggestionCache();
-      updateStorage();
-      msg("Suggestion cache cleared");
+      clearSuggestionCache(); updateStorage(); msg("Suggestion cache cleared");
     });
-
     q("#ns-backup").addEventListener("click", function () {
-      exportBackup();
-      msg("Backup exported");
+      exportBackup(); msg("Backup exported");
     });
-
     q("#ns-import-btn").addEventListener("click", function () {
       q("#ns-import").click();
     });
-
     q("#ns-import").addEventListener("change", function (event) {
       const file = event.target.files && event.target.files[0];
-      if (file) importBackup(file, status);
+      if (file) importBackup(file, msg);
     });
-
     save.addEventListener("click", function () {
-      saveSettings(s);
-      updateStorage();
-      msg("Saved ✓");
+      saveSettings(s); updateStorage(); msg("Saved ✓");
     });
+    reset.addEventListener("click", function () { resetEverything(msg); });
+  }
 
-    reset.addEventListener("click", function () {
-      resetEverything(status);
-    });
+  /* ---------- open / close ---------- */
+  function ensureBackdrop() {
+    let bd = document.getElementById("novaSettingsBackdrop");
+    if (!bd) {
+      bd = document.createElement("div");
+      bd.id = "novaSettingsBackdrop";
+      bd.addEventListener("click", closeNovaSettings);
+      document.body.appendChild(bd);
+    }
+    return bd;
   }
 
   function openNovaSettings() {
     const panel = document.getElementById("novaSettingsPanel");
     const content = document.getElementById("novaSettingsContent");
     if (!panel || !content) return;
+    ensureBackdrop().classList.add("show");
     panel.classList.add("show");
     panel.setAttribute("aria-hidden", "false");
     renderSettings(content);
@@ -530,33 +844,35 @@
     if (!panel) return;
     panel.classList.remove("show");
     panel.setAttribute("aria-hidden", "true");
+    const bd = document.getElementById("novaSettingsBackdrop");
+    if (bd) bd.classList.remove("show");
   }
 
+  /* ---------- exports ---------- */
   window.NovaSettings = {
     loadSettings: loadSettings,
     applySettings: applySettings,
     saveSettings: saveSettings
   };
-
   window.renderNovaSettings = renderSettings;
-
-  const close = document.getElementById("novaSettingsClose");
-  if (close) close.addEventListener("click", closeNovaSettings);
-
   window.openNovaSettings = openNovaSettings;
   window.closeNovaSettings = closeNovaSettings;
 
+  const closeBtn = document.getElementById("novaSettingsClose");
+  if (closeBtn) closeBtn.addEventListener("click", closeNovaSettings);
+
   document.addEventListener("keydown", function (event) {
+    const panel = document.getElementById("novaSettingsPanel");
     if (event.key === "Escape" && panel && panel.classList.contains("show")) {
       closeNovaSettings();
       return;
     }
-
     if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === "s") {
       event.preventDefault();
       openNovaSettings();
     }
   });
 
+  ensureBackdrop();
   applySettings(loadSettings());
 })();
