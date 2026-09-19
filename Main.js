@@ -199,6 +199,9 @@ function registerWhenReady() {
     setTimeout(registerWhenReady, 120);
   }
 }
-
   // Expose the renderer so Nova can open Settings without Appsbar.
   window.renderNovaSettings = renderSettings;
+
+  // The old Appsbar is gone, so do not wait for NovaApps here.
+  // Main.js now works as a standalone Settings module.
+})();
