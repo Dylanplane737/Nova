@@ -112,7 +112,7 @@
       ":root{--nova-accent:#0f75a8;--nova-accent-light:#a8d0e6;}",
       "#openBtn,#novaSettingsButton,#novaNewTab,.nova-settings .nova-action,.nova-settings .nova-preset{background:var(--nova-accent)!important;}",
       ".nova-tab.active,.suggestions div:hover,.suggestions .highlighted{background:var(--nova-accent)!important;}",
-      "input#urlInput:focus{box-shadow:0 0 12px 3px var(--nova-accent-light)!important;}",
+      "input#urlInput:focus{outline:none!important;box-shadow:0 0 12px 3px #a8d0e6!important;transition:box-shadow 0.3s ease!important;}",
       ".nova-settings button{margin-top:0!important;}",
       "html.nova-no-motion *,html.nova-no-motion *::before,html.nova-no-motion *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important;}",
       "html.nova-compact body{margin-top:16px!important;margin-bottom:16px!important;}",
