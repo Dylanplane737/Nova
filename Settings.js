@@ -14,6 +14,7 @@
     compact: "novaCompact",
     highContrast: "novaHighContrast",
     suggestions: "novaSuggestions",
+    webResults: "novaWebResults",
     autoFocus: "novaAutoFocus",
     openLinksNewTab: "novaOpenLinksNewTab",
     saveHistory: "novaSaveHistory",
@@ -32,6 +33,7 @@
     compact: false,
     highContrast: false,
     suggestions: true,
+    webResults: true,
     autoFocus: true,
     openLinksNewTab: true,
     saveHistory: true,
@@ -70,6 +72,7 @@
       compact: bool(STORAGE.compact, DEFAULTS.compact),
       highContrast: bool(STORAGE.highContrast, DEFAULTS.highContrast),
       suggestions: bool(STORAGE.suggestions, DEFAULTS.suggestions),
+      webResults: bool(STORAGE.webResults, DEFAULTS.webResults),
       autoFocus: bool(STORAGE.autoFocus, DEFAULTS.autoFocus),
       openLinksNewTab: bool(STORAGE.openLinksNewTab, DEFAULTS.openLinksNewTab),
       saveHistory: bool(STORAGE.saveHistory, DEFAULTS.saveHistory),
@@ -88,6 +91,7 @@
     localStorage.setItem(STORAGE.compact, String(!!s.compact));
     localStorage.setItem(STORAGE.highContrast, String(!!s.highContrast));
     localStorage.setItem(STORAGE.suggestions, String(!!s.suggestions));
+    localStorage.setItem(STORAGE.webResults, String(!!s.webResults));
     localStorage.setItem(STORAGE.autoFocus, String(!!s.autoFocus));
     localStorage.setItem(STORAGE.openLinksNewTab, String(!!s.openLinksNewTab));
     localStorage.setItem(STORAGE.saveHistory, String(!!s.saveHistory));
@@ -220,7 +224,7 @@
         if (Number.isFinite(Number(incoming.fontSize))) localStorage.setItem(STORAGE.fontSize, String(incoming.fontSize));
 
         [
-          "audioPreview","animations","compact","highContrast","suggestions",
+          "audioPreview","animations","compact","highContrast","suggestions","webResults",
           "autoFocus","openLinksNewTab","saveHistory","restoreSearch",
           "smoothScroll","showTabs"
         ].forEach(function (key) {
@@ -287,6 +291,7 @@
 
       '<div style="border-top:1px solid rgba(255,255,255,.14);margin-top:16px;padding-top:14px"><strong>Search & behavior</strong>',
       '<label style="display:flex;align-items:center;gap:8px;margin-top:9px"><input id="ns-suggestions" type="checkbox"> Search suggestions</label>',
+      '<label style="display:flex;align-items:center;gap:8px;margin-top:8px"><input id="ns-web-results" type="checkbox"> Web search results</label>',
       '<label style="display:flex;align-items:center;gap:8px;margin-top:8px"><input id="ns-autofocus" type="checkbox"> Focus search box on startup</label>',
       '<label style="display:flex;align-items:center;gap:8px;margin-top:8px"><input id="ns-newtab" type="checkbox"> Open websites in a new tab</label>',
       '<label style="display:flex;align-items:center;gap:8px;margin-top:8px"><input id="ns-lastsearch" type="checkbox"> Remember last search</label>',
@@ -327,6 +332,7 @@
     const motion = q("#ns-motion");
     const contrast = q("#ns-contrast");
     const suggestions = q("#ns-suggestions");
+    const webResults = q("#ns-web-results");
     const autoFocus = q("#ns-autofocus");
     const newTab = q("#ns-newtab");
     const lastSearch = q("#ns-lastsearch");
@@ -348,6 +354,7 @@
     motion.checked = s.animations;
     contrast.checked = s.highContrast;
     suggestions.checked = s.suggestions;
+    webResults.checked = s.webResults;
     autoFocus.checked = s.autoFocus;
     newTab.checked = s.openLinksNewTab;
     lastSearch.checked = s.restoreSearch;
@@ -411,6 +418,12 @@
     });
 
     suggestions.addEventListener("change", function () { s.suggestions = suggestions.checked; saveSettings(s); });
+    webResults.addEventListener("change", function () {
+      s.webResults = webResults.checked;
+      saveSettings(s);
+      const box = document.getElementById("webSearchContainer");
+      if (box && !s.webResults) box.classList.remove("visible");
+    });
     autoFocus.addEventListener("change", function () { s.autoFocus = autoFocus.checked; saveSettings(s); });
     newTab.addEventListener("change", function () { s.openLinksNewTab = newTab.checked; saveSettings(s); });
     lastSearch.addEventListener("change", function () { s.restoreSearch = lastSearch.checked; saveSettings(s); });
