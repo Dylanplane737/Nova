@@ -382,46 +382,53 @@
     accent.addEventListener("input", function () {
       s.accent = accent.value;
       applySettings(s);
+      saveSettings(s);
     });
 
     font.addEventListener("change", function () {
       s.fontSize = Math.max(10, Math.min(48, parseInt(font.value || "16", 10)));
       font.value = s.fontSize;
       applySettings(s);
+      saveSettings(s);
     });
 
     compact.addEventListener("change", function () {
       s.compact = compact.checked;
       applySettings(s);
+      saveSettings(s);
     });
 
     motion.addEventListener("change", function () {
       s.animations = motion.checked;
       applySettings(s);
+      saveSettings(s);
     });
 
     contrast.addEventListener("change", function () {
       s.highContrast = contrast.checked;
       applySettings(s);
+      saveSettings(s);
     });
 
-    suggestions.addEventListener("change", function () { s.suggestions = suggestions.checked; });
-    autoFocus.addEventListener("change", function () { s.autoFocus = autoFocus.checked; });
-    newTab.addEventListener("change", function () { s.openLinksNewTab = newTab.checked; });
-    lastSearch.addEventListener("change", function () { s.restoreSearch = lastSearch.checked; });
-    history.addEventListener("change", function () { s.saveHistory = history.checked; });
+    suggestions.addEventListener("change", function () { s.suggestions = suggestions.checked; saveSettings(s); });
+    autoFocus.addEventListener("change", function () { s.autoFocus = autoFocus.checked; saveSettings(s); });
+    newTab.addEventListener("change", function () { s.openLinksNewTab = newTab.checked; saveSettings(s); });
+    lastSearch.addEventListener("change", function () { s.restoreSearch = lastSearch.checked; saveSettings(s); });
+    history.addEventListener("change", function () { s.saveHistory = history.checked; saveSettings(s); });
 
     smooth.addEventListener("change", function () {
       s.smoothScroll = smooth.checked;
       applySettings(s);
+      saveSettings(s);
     });
 
     tabs.addEventListener("change", function () {
       s.showTabs = tabs.checked;
       applySettings(s);
+      saveSettings(s);
     });
 
-    audio.addEventListener("change", function () { s.audioPreview = audio.checked; });
+    audio.addEventListener("change", function () { s.audioPreview = audio.checked; saveSettings(s); });
 
     bgFile.addEventListener("change", function (event) {
       const file = event.target.files && event.target.files[0];
@@ -433,6 +440,7 @@
         bgPreview.src = s.background;
         bgPreview.style.display = "block";
         applySettings(s);
+        saveSettings(s);
       };
       reader.readAsDataURL(file);
     });
@@ -442,6 +450,7 @@
       bgPreview.removeAttribute("src");
       bgPreview.style.display = "none";
       applySettings(s);
+      saveSettings(s);
     });
 
     container.querySelectorAll(".nova-preset").forEach(function (button) {
@@ -453,6 +462,7 @@
         if (s.theme === "retro") s.accent = "#000080";
         accent.value = s.accent;
         applySettings(s);
+        saveSettings(s);
         msg((THEMES[s.theme] || THEMES.classic).name + " applied");
       });
     });
@@ -511,6 +521,12 @@
     panel.classList.remove("show");
     panel.setAttribute("aria-hidden", "true");
   }
+
+  window.NovaSettings = {
+    loadSettings: loadSettings,
+    applySettings: applySettings,
+    saveSettings: saveSettings
+  };
 
   window.renderNovaSettings = renderSettings;
 
