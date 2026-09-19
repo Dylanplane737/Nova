@@ -642,7 +642,7 @@ function parseWebSearchResults(markdown){
 }
 
 async function searchWeb(query){
-  if (!query) return [];
+  if (!query) return { results: [], failed: false };
 
   const target = "https://html.duckduckgo.com/html/?q=" +
     encodeURIComponent(query) + "&kl=us-en";
@@ -657,10 +657,10 @@ async function searchWeb(query){
     if (!res.ok) throw new Error("Web search gateway returned " + res.status);
 
     const body = await res.text();
-    return parseWebSearchResults(body);
+    return { results: parseWebSearchResults(body), failed: false };
   } catch (err) {
     console.warn("Nova web search failed:", err);
-    return [];
+    return { results: [], failed: true };
   }
 }
 
@@ -712,15 +712,22 @@ async function loadWebResults(query){
   webSearchContainer.classList.remove("visible");
   webSearchResults.innerHTML = "<p>Searching the web...</p>";
 
-  const results = await searchWeb(query);
+  const search = await searchWeb(query);
 
-  if (results.length) {
-    renderWebResults(results, query);
+  if (search.results.length) {
+    renderWebResults(search.results, query);
   } else {
+    const fallbackUrl = search.failed
+      ? "https://www.google.com/search?q=" + encodeURIComponent(query)
+      : "https://html.duckduckgo.com/html/?q=" + encodeURIComponent(query);
+
+    const fallbackName = search.failed ? "Google Search" : "DuckDuckGo";
+
     webSearchResults.innerHTML =
-      '<p>No web results loaded. <a href="https://html.duckduckgo.com/html/?q=' +
-      encodeURIComponent(query) +
-      '" target="_blank" rel="noopener noreferrer" style="color:#bfeaff">Open web search</a></p>';
+      '<p>No web results loaded. <a href="' + fallbackUrl +
+      '" target="_blank" rel="noopener noreferrer" style="color:#bfeaff">' +
+      'Open ' + fallbackName + '</a></p>';
+
     webSearchContainer.classList.add("visible");
   }
 }
