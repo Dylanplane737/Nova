@@ -1,6 +1,5 @@
 /* =========================================================
    NOVA SETTINGS
-   Local-only settings. No API calls required.
    ========================================================= */
 (function () {
   const STORAGE = {
