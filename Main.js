@@ -183,6 +183,9 @@
     applySettingsToPage(s);
   }
 
+  // Register with the old Appsbar when available (kept for compatibility)
+  window.renderNovaSettings = renderSettings;
+
   // Register the app with the Appsbar runtime
 function registerWhenReady() {
   if (window.NovaApps && typeof window.NovaApps.registerApp === 'function') {
@@ -196,3 +199,6 @@ function registerWhenReady() {
     setTimeout(registerWhenReady, 120);
   }
 }
+
+  // Expose the renderer so Nova can open Settings without Appsbar.
+  window.renderNovaSettings = renderSettings;
