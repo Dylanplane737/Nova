@@ -504,12 +504,9 @@
     });
   }
 
-  const button = document.getElementById("novaSettingsButton");
-  const panel = document.getElementById("novaSettingsPanel");
-  const content = document.getElementById("novaSettingsContent");
-  const close = document.getElementById("novaSettingsClose");
-
   function openNovaSettings() {
+    const panel = document.getElementById("novaSettingsPanel");
+    const content = document.getElementById("novaSettingsContent");
     if (!panel || !content) return;
     panel.classList.add("show");
     panel.setAttribute("aria-hidden", "false");
@@ -517,6 +514,7 @@
   }
 
   function closeNovaSettings() {
+    const panel = document.getElementById("novaSettingsPanel");
     if (!panel) return;
     panel.classList.remove("show");
     panel.setAttribute("aria-hidden", "true");
@@ -530,8 +528,11 @@
 
   window.renderNovaSettings = renderSettings;
 
-  if (button) button.addEventListener("click", openNovaSettings);
+  const close = document.getElementById("novaSettingsClose");
   if (close) close.addEventListener("click", closeNovaSettings);
+
+  window.openNovaSettings = openNovaSettings;
+  window.closeNovaSettings = closeNovaSettings;
 
   document.addEventListener("keydown", function (event) {
     if (event.key === "Escape" && panel && panel.classList.contains("show")) {
