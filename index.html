@@ -1158,7 +1158,7 @@ document.getElementById("openBtn").addEventListener("click", openWebsite);
 
 <!-- Load Apps (Make sure to fix Main.js by adding registerWhenReady(); at the bottom!) -->
 
-<script src="Main.js"></script>
+<script src="Main.js?v=20260919-settings"></script>
 <script>
 (function () {
   const button = document.getElementById("novaSettingsButton");
@@ -1166,16 +1166,168 @@ document.getElementById("openBtn").addEventListener("click", openWebsite);
   const content = document.getElementById("novaSettingsContent");
   const close = document.getElementById("novaSettingsClose");
 
+  // Standalone Settings renderer. This does not depend on Appsbar/Main.js.
+  window.renderNovaSettings = function (container) {
+    if (!container) return;
+
+    const STORAGE = {
+      darkMode: "novaDarkMode",
+      background: "novaBackground",
+      fontSize: "novaFontSize",
+      audioPreview: "novaAudioPreview"
+    };
+
+    const loadSettings = () => ({
+      darkMode: localStorage.getItem(STORAGE.darkMode) === "true",
+      backgroundImage: localStorage.getItem(STORAGE.background) || "",
+      fontSize: Math.max(10, Math.min(48, parseInt(localStorage.getItem(STORAGE.fontSize) || "16", 10))),
+      audioPreview: localStorage.getItem(STORAGE.audioPreview) === "true"
+    });
+
+    const saveSettings = (s) => {
+      localStorage.setItem(STORAGE.darkMode, String(!!s.darkMode));
+      localStorage.setItem(STORAGE.fontSize, String(s.fontSize));
+      localStorage.setItem(STORAGE.audioPreview, String(!!s.audioPreview));
+      if (s.backgroundImage) localStorage.setItem(STORAGE.background, s.backgroundImage);
+      else localStorage.removeItem(STORAGE.background);
+    };
+
+    const applySettings = (s) => {
+      document.documentElement.style.fontSize = s.fontSize + "px";
+      document.body.style.color = s.darkMode ? "#eaf6ff" : "white";
+      document.body.style.backgroundColor = s.darkMode ? "#071018" : "#2596be";
+
+      if (s.backgroundImage) {
+        document.body.style.backgroundImage = 'url("' + s.backgroundImage.replace(/"/g, "%22") + '")';
+        document.body.style.backgroundSize = "cover";
+        document.body.style.backgroundPosition = "center";
+        document.body.style.backgroundAttachment = "fixed";
+      } else {
+        document.body.style.backgroundImage = "";
+        document.body.style.backgroundSize = "";
+        document.body.style.backgroundPosition = "";
+        document.body.style.backgroundAttachment = "";
+      }
+    };
+
+    const s = loadSettings();
+
+    container.innerHTML = `
+      <div class="nova-settings">
+        <h2 style="margin:0 0 14px 0">Nova Settings</h2>
+
+        <label style="display:flex;align-items:center;gap:8px;margin:10px 0">
+          <input id="ns-dark" type="checkbox">
+          Dark Mode
+        </label>
+
+        <label style="display:flex;align-items:center;gap:8px;margin:10px 0">
+          Font size
+          <input id="ns-font" type="number" min="10" max="48" style="width:70px;padding:6px;border-radius:8px;border:1px solid #555">
+        </label>
+
+        <label style="display:flex;align-items:center;gap:8px;margin:10px 0">
+          <input id="ns-audio" type="checkbox">
+          Audio previews
+        </label>
+
+        <div style="border-top:1px solid rgba(255,255,255,.12);margin-top:14px;padding-top:14px">
+          <div style="margin-bottom:8px">Background</div>
+          <input id="ns-bg-file" type="file" accept="image/*">
+          <button id="ns-clear-bg" type="button">Classic Blue</button>
+          <img id="ns-bg-preview" alt="Background preview"
+               style="display:none;width:100%;height:90px;object-fit:cover;border-radius:8px;margin-top:10px">
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:16px">
+          <button id="ns-save" type="button">Save</button>
+          <button id="ns-open-translate" type="button">🌐 Translate</button>
+        </div>
+
+        <div id="ns-status" style="margin-top:10px;font-size:12px;opacity:.75"></div>
+      </div>
+    `;
+
+    const darkEl = container.querySelector("#ns-dark");
+    const fontEl = container.querySelector("#ns-font");
+    const audioEl = container.querySelector("#ns-audio");
+    const fileEl = container.querySelector("#ns-bg-file");
+    const preview = container.querySelector("#ns-bg-preview");
+    const clearBtn = container.querySelector("#ns-clear-bg");
+    const saveBtn = container.querySelector("#ns-save");
+    const translateBtn = container.querySelector("#ns-open-translate");
+    const status = container.querySelector("#ns-status");
+
+    darkEl.checked = s.darkMode;
+    fontEl.value = s.fontSize;
+    audioEl.checked = s.audioPreview;
+
+    if (s.backgroundImage) {
+      preview.src = s.backgroundImage;
+      preview.style.display = "block";
+    }
+
+    applySettings(s);
+
+    darkEl.addEventListener("change", () => {
+      s.darkMode = darkEl.checked;
+      applySettings(s);
+    });
+
+    fontEl.addEventListener("change", () => {
+      s.fontSize = Math.max(10, Math.min(48, parseInt(fontEl.value || "16", 10)));
+      fontEl.value = s.fontSize;
+      applySettings(s);
+    });
+
+    audioEl.addEventListener("change", () => {
+      s.audioPreview = audioEl.checked;
+    });
+
+    fileEl.addEventListener("change", (event) => {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        s.backgroundImage = String(reader.result || "");
+        preview.src = s.backgroundImage;
+        preview.style.display = "block";
+        applySettings(s);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    clearBtn.addEventListener("click", () => {
+      s.backgroundImage = "";
+      preview.removeAttribute("src");
+      preview.style.display = "none";
+      applySettings(s);
+    });
+
+    saveBtn.addEventListener("click", () => {
+      saveSettings(s);
+      status.textContent = "Saved ✓";
+      setTimeout(() => { status.textContent = ""; }, 1200);
+    });
+
+    translateBtn.addEventListener("click", () => {
+      if (typeof window.NovaApps !== "undefined" &&
+          typeof window.NovaApps.openApp === "function") {
+        window.NovaApps.openApp("nova-translate");
+      } else {
+        const target = document.getElementById("urlInput");
+        if (target) target.value = "translate";
+        if (typeof openWebsite === "function") openWebsite();
+      }
+    });
+  };
+
   function openNovaSettings() {
     if (!panel || !content) return;
     panel.classList.add("show");
     panel.setAttribute("aria-hidden", "false");
-
-    if (typeof window.renderNovaSettings === "function") {
-      window.renderNovaSettings(content);
-    } else {
-      content.innerHTML = "<p>Settings failed to load.</p>";
-    }
+    window.renderNovaSettings(content);
   }
 
   function closeNovaSettings() {
@@ -1193,6 +1345,7 @@ document.getElementById("openBtn").addEventListener("click", openWebsite);
     }
   });
 })();
+</script>
 </script>
 <script src="NovaTranslate.js"></script>
 <script>
