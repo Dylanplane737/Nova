@@ -476,9 +476,13 @@ function checkEasterEggs(input){
   const lower = input.trim().toLowerCase();
   stopMatrix();
   document.body.style.transform = "";
-  document.body.style.backgroundColor = "";
-  document.body.style.color = "";
   rickrollContainer.style.display = "none";
+
+  // Never let an easter egg/search clear Nova's saved theme or custom background.
+  // Settings.js owns the page theme, so only restore it if an old effect changed it.
+  if (window.NovaSettings && typeof window.NovaSettings.applySettings === "function") {
+    window.NovaSettings.applySettings(window.NovaSettings.loadSettings());
+  }
 
   if (!lower) return false;
   if (lower === "67"){ rickrollContainer.style.display = "block"; window.scrollTo({top:0,behavior:"smooth"}); return true; }
