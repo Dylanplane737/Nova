@@ -757,7 +757,15 @@ async function openWebsite(){
   }
 
   showSpinner();
-  const webResultsPromise = loadWebResults(input);
+  const webResultsEnabled = localStorage.getItem("novaWebResults") !== "false";
+  const webResultsPromise = webResultsEnabled
+    ? loadWebResults(input)
+    : Promise.resolve();
+
+  if (!webResultsEnabled && webSearchContainer) {
+    webSearchContainer.classList.remove("visible");
+    if (webSearchResults) webSearchResults.innerHTML = "";
+  }
 
   try {
     // 1) Wiki summary
