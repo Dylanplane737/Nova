@@ -68,6 +68,19 @@
     font-weight:700;
   }
   .web-result a:hover { text-decoration:underline; }
+  .web-result-head {
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .web-result-favicon {
+    width:20px;
+    height:20px;
+    flex:0 0 20px;
+    border-radius:4px;
+    object-fit:contain;
+    background:rgba(255,255,255,0.08);
+  }
   .web-result-url {
     color:#8ad0ec;
     font-size:12px;
@@ -693,6 +706,26 @@ async function searchWeb(query){
   }
 }
 
+function getWebFaviconUrl(resultUrl){
+  try {
+    const parsed = new URL(resultUrl);
+    return parsed.origin + "/favicon.ico";
+  } catch {
+    return "";
+  }
+}
+
+function novaFallbackFavicon(){
+  return "data:image/svg+xml;charset=UTF-8," +
+    encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
+      '<rect width="64" height="64" rx="12" fill="#0f75a8"/>' +
+      '<circle cx="32" cy="32" r="18" fill="none" stroke="white" stroke-width="5"/>' +
+      '<path d="M14 32h36M32 14c7 7 7 29 0 36M32 14c-7 7-7 29 0 36" fill="none" stroke="white" stroke-width="3"/>' +
+      '</svg>'
+    );
+}
+
 function renderWebResults(results, query){
   if (!webSearchContainer || !webSearchResults) return;
 
@@ -707,11 +740,27 @@ function renderWebResults(results, query){
     const card = document.createElement("article");
     card.className = "web-result";
 
+    const header = document.createElement("div");
+    header.className = "web-result-head";
+
+    const favicon = document.createElement("img");
+    favicon.className = "web-result-favicon";
+    favicon.alt = "";
+    favicon.loading = "lazy";
+    favicon.src = getWebFaviconUrl(result.url);
+    favicon.onerror = function () {
+      favicon.onerror = null;
+      favicon.src = novaFallbackFavicon();
+    };
+
     const link = document.createElement("a");
     link.href = result.url;
     link.target = "_blank";
     link.rel = "noopener noreferrer";
     link.textContent = result.title;
+
+    header.appendChild(favicon);
+    header.appendChild(link);
 
     const url = document.createElement("div");
     url.className = "web-result-url";
@@ -725,7 +774,7 @@ function renderWebResults(results, query){
     snippet.className = "web-result-snippet";
     snippet.textContent = result.snippet || "Open this result to view the website.";
 
-    card.appendChild(link);
+    card.appendChild(header);
     card.appendChild(url);
     card.appendChild(snippet);
     webSearchResults.appendChild(card);
