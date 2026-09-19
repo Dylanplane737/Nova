@@ -685,113 +685,312 @@ openWebsite = async function(){
 
 <script>
 // ================== MAP SYSTEM ==================
+/*
+  Nova Map
+  - Uses Leaflet + OpenStreetMap
+  - Does not require an API key
+  - Handles Leaflet loading failures instead of crashing Nova
+  - Supports places, addresses, "near me", and simple POI searches
+*/
 (async function(){
   const NOMINATIM = "https://nominatim.openstreetmap.org";
   const LEAFLET_CSS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
   const LEAFLET_JS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-  const POI_TYPES = ["coffee","cafe","restaurant","bar","park","museum","hotel","atm","bank","pharmacy"];
-  const MAP_ZOOM_CITY = 12, MAP_ZOOM_POI = 15;
+  const POI_TYPES = ["coffee","cafe","restaurant","park","museum","hotel","atm","bank","pharmacy","gas station","grocery"];
+  const MAP_ZOOM_CITY = 12;
+  const MAP_ZOOM_POI = 15;
 
   async function loadLeaflet(){
-    if (window.L) return Promise.resolve();
-    if (!document.querySelector(`link[href="${LEAFLET_CSS}"]`)) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = LEAFLET_CSS; document.head.appendChild(l); }
-    if (!document.querySelector(`script[src="${LEAFLET_JS}"]`)) { await new Promise((resolve, reject) => { const s = document.createElement("script"); s.src = LEAFLET_JS; s.onload = resolve; s.onerror = reject; document.head.appendChild(s); }); }
-    return;
+    if (window.L) return true;
+
+    if (!document.querySelector('link[data-nova-leaflet="css"]')) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = LEAFLET_CSS;
+      link.dataset.novaLeaflet = "css";
+      document.head.appendChild(link);
+    }
+
+    const existing = document.querySelector('script[data-nova-leaflet="js"]');
+    if (existing) {
+      return new Promise(resolve => {
+        if (window.L) return resolve(true);
+        existing.addEventListener("load", () => resolve(!!window.L), { once:true });
+        existing.addEventListener("error", () => resolve(false), { once:true });
+      });
+    }
+
+    return new Promise(resolve => {
+      const script = document.createElement("script");
+      script.src = LEAFLET_JS;
+      script.async = true;
+      script.dataset.novaLeaflet = "js";
+      script.onload = () => resolve(!!window.L);
+      script.onerror = () => resolve(false);
+      document.head.appendChild(script);
+    });
   }
 
   function isMapIntent(q){
     if (!q) return false;
-    const s = q.toLowerCase();
-    if (/\b(map|where is|where's|near me|directions|how to get to)\b/.test(s)) return true;
-    if (/\b(map)$/.test(s.split(" ").slice(-1)[0])) return true;
-    for (const t of POI_TYPES) if (s.includes(t)) return true;
-    if (/,/.test(q) && q.trim().split(",").length >= 2) return true;
-    if (/^[A-Z][a-z]{2,}$/.test(q.trim()) && q.trim().length > 2) return true;
+    const s = q.trim().toLowerCase();
+
+    if (/\b(map|where is|where's|near me|directions|how to get to|location of)\b/.test(s)) return true;
+    if (POI_TYPES.some(type => s.includes(type))) return true;
+
+    // Addresses / city-state searches such as "Hampton VA" or "Hampton, VA"
+    if (/\b(?:va|virginia|md|maryland|dc|nc|north carolina|ny|new york|ca|california|fl|florida|tx|texas|pa|pennsylvania)\b/i.test(q)) return true;
+    if (/\d+\s+[^,]+\s+(?:st|street|ave|avenue|rd|road|dr|drive|blvd|boulevard|ln|lane|ct|court|way|hwy|highway)\b/i.test(q)) return true;
+    if (/^[A-Za-z .'-]{3,40},\s*[A-Za-z .'-]{2,40}$/.test(q)) return true;
+
     return false;
   }
 
   function createMapUI(){
-    const existing = document.getElementById("novaMapContainer"); if (existing) existing.remove();
+    const old = document.getElementById("novaMapContainer");
+    if (old) old.remove();
+
     const container = document.createElement("aside");
     container.id = "novaMapContainer";
-    container.style.cssText = "width:44%;min-width:260px;background:rgba(0,0,0,0.28);padding:12px;border-radius:12px;boxSizing:border-box;color:white;display:flex;flexDirection:column;gap:10px;";
-    container.innerHTML = `<h3 style="margin:0">Map</h3><div id="novaMapWrapper" style="height:360px;border-radius:8px;overflow:hidden;background:#0b1220"></div><div id="novaMapResults" style="maxHeight:180px;overflow:auto;fontSize:13px;color:#d6eefb"></div>`;
-    
+    container.style.cssText = [
+      "width:44%",
+      "min-width:260px",
+      "background:rgba(0,0,0,0.28)",
+      "padding:12px",
+      "border-radius:12px",
+      "box-sizing:border-box",
+      "color:white",
+      "display:flex",
+      "flex-direction:column",
+      "gap:10px"
+    ].join(";");
+
+    container.innerHTML = `
+      <h3 style="margin:0">Map</h3>
+      <div id="novaMapWrapper" style="height:360px;width:100%;border-radius:8px;overflow:hidden;background:#0b1220"></div>
+      <div id="novaMapResults" style="max-height:180px;overflow:auto;font-size:13px;color:#d6eefb"></div>
+    `;
+
     const resultContainer = document.getElementById("resultContainer");
-    if (!resultContainer) document.querySelector("main").appendChild(container);
-    else {
+    if (!resultContainer) {
+      document.querySelector("main").appendChild(container);
+    } else {
       resultContainer.classList.add("visible");
-      const related = document.getElementById("relatedMedia");
-      if (related && related.parentElement === resultContainer) resultContainer.insertBefore(container, related.nextSibling);
-      else resultContainer.appendChild(container);
+      resultContainer.appendChild(container);
     }
-    return { container, mapWrapper: document.getElementById("novaMapWrapper"), list: document.getElementById("novaMapResults") };
+
+    return {
+      container,
+      mapWrapper: document.getElementById("novaMapWrapper"),
+      list: document.getElementById("novaMapResults")
+    };
   }
 
-  function buildOSMLink(lat, lon){ return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=18/${lat}/${lon}`; }
-
-  async function geocode(query, limit=6){
-    const res = await fetch(`${NOMINATIM}/search?format=json&addressdetails=1&q=${encodeURIComponent(query)}&limit=${limit}&accept-language=en`, { headers: { "User-Agent": "Nova-Dylatosh-Map/1.0" }});
-    if (!res.ok) return []; return res.json();
+  function buildOSMLink(lat, lon){
+    return `https://www.openstreetmap.org/?mlat=${encodeURIComponent(lat)}&mlon=${encodeURIComponent(lon)}#map=18/${lat}/${lon}`;
   }
 
-  async function searchPOIsNear(lat, lon, term="coffee", radiusMeters=2000, limit=10){
-    const delta = Math.max(0.005, (radiusMeters/111000));
-    const viewbox = `${lon - delta},${lat + delta},${lon + delta},${lat - delta}`;
+  async function geocode(query, limit=8){
     try {
-      const res = await fetch(`${NOMINATIM}/search?format=json&addressdetails=1&q=${encodeURIComponent(term)}&limit=${limit}&viewbox=${encodeURIComponent(viewbox)}&bounded=1&accept-language=en`, { headers: { "User-Agent": "Nova-Dylatosh-Map/1.0" }});
-      if (!res.ok) return []; return res.json();
-    } catch(err){ return []; }
+      const res = await fetch(
+        `${NOMINATIM}/search?format=jsonv2&addressdetails=1&q=${encodeURIComponent(query)}&limit=${limit}&accept-language=en`
+      );
+      if (!res.ok) return [];
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    } catch (err) {
+      console.warn("Nova Map geocoding failed:", err);
+      return [];
+    }
+  }
+
+  async function searchPOIsNear(lat, lon, term, radiusMeters=3000, limit=12){
+    const latDelta = radiusMeters / 111000;
+    const lonDelta = radiusMeters / (111000 * Math.max(Math.cos(lat * Math.PI / 180), 0.2));
+    const viewbox = [
+      lon - lonDelta,
+      lat + latDelta,
+      lon + lonDelta,
+      lat - latDelta
+    ].join(",");
+
+    try {
+      const res = await fetch(
+        `${NOMINATIM}/search?format=jsonv2&addressdetails=1&q=${encodeURIComponent(term)}&limit=${limit}&viewbox=${encodeURIComponent(viewbox)}&bounded=1&accept-language=en`
+      );
+      if (!res.ok) return [];
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    } catch (err) {
+      console.warn("Nova Map nearby search failed:", err);
+      return [];
+    }
+  }
+
+  function addOSMLayer(map){
+    L.tileLayer(
+      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'
+      }
+    ).addTo(map);
+  }
+
+  function showMapError(list, message){
+    list.innerHTML = `<div style="padding:8px">${escapeHtml(message)}</div>`;
   }
 
   async function showMapForQuery(rawQuery){
-    if (!rawQuery || !isMapIntent(rawQuery)) return;
-    await loadLeaflet().catch(err => console.warn("Leaflet load failed", err));
-    const q = rawQuery.trim();
-    const { mapWrapper, list } = createMapUI();
-    list.innerHTML = "<em style='color:#cfeffb'>Searching map…</em>";
+    const q = (rawQuery || "").trim();
+    if (!isMapIntent(q)) return;
 
-    if (/\bnear me\b/i.test(q)){
-      const foundPOI = POI_TYPES.find(t => q.toLowerCase().includes(t)) || null;
-      if (!navigator.geolocation) { list.innerHTML = "<div>Geolocation not available.</div>"; return; }
-      list.innerHTML = "<div>Requesting your location…</div>";
-      navigator.geolocation.getCurrentPosition(async (pos) => {
-        const lat = pos.coords.latitude, lon = pos.coords.longitude;
-        const map = L.map(mapWrapper).setView([lat, lon], MAP_ZOOM_POI);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OSM' }).addTo(map);
-        L.marker([lat, lon]).addTo(map).bindPopup("You are here").openPopup();
-        if (foundPOI) {
-          list.innerHTML = `<div style="margin-bottom:6px">Searching for <strong>${foundPOI}</strong> near you…</div>`;
-          const pois = await searchPOIsNear(lat, lon, foundPOI, 2500, 12);
-          if (!pois || !pois.length) { list.innerHTML += "<div>No nearby results found.</div>"; return; }
-          pois.forEach(p => { const m = L.marker([p.lat, p.lon]).addTo(map).bindPopup(escapeHtml(p.display_name)); const row = document.createElement("div"); row.style.cssText="padding:6px;cursor:pointer;margin-bottom:4px"; row.onclick=()=>{map.setView([p.lat,p.lon],MAP_ZOOM_POI);m.openPopup();}; row.innerHTML=`<b>${escapeHtml(p.display_name.split(",")[0])}</b>`; list.appendChild(row); });
-        } else { list.innerHTML = `<div>Centered at your location.</div>`; }
-      }, () => { list.innerHTML = "<div>Location permission denied.</div>"; }, { enableHighAccuracy: false, timeout: 8000 });
+    const { mapWrapper, list } = createMapUI();
+    list.innerHTML = "<div>Loading map…</div>";
+
+    const leafletReady = await loadLeaflet();
+    if (!leafletReady || !window.L) {
+      showMapError(
+        list,
+        "The map library could not load. Check your internet connection or allow unpkg.com, then try again."
+      );
       return;
     }
 
-    const results = await geocode(q, 10).catch(()=>[]);
-    if (!results || results.length === 0){ list.innerHTML = "<div>No map results found.</div>"; return; }
-    const primary = results[0];
-    const lat = parseFloat(primary.lat), lon = parseFloat(primary.lon);
+    if (q.match(/\bnear me\b/i)) {
+      if (!navigator.geolocation) {
+        showMapError(list, "Your browser does not provide location access.");
+        return;
+      }
+
+      list.innerHTML = "<div>Requesting your location…</div>";
+
+      navigator.geolocation.getCurrentPosition(async pos => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+
+        const map = L.map(mapWrapper).setView([lat, lon], MAP_ZOOM_POI);
+        addOSMLayer(map);
+
+        L.marker([lat, lon])
+          .addTo(map)
+          .bindPopup("You are here")
+          .openPopup();
+
+        const foundPOI = POI_TYPES.find(type =>
+          q.toLowerCase().includes(type)
+        );
+
+        if (!foundPOI) {
+          list.innerHTML = "<div>Centered on your location.</div>";
+          return;
+        }
+
+        list.innerHTML = `<div style="margin-bottom:6px">Searching for <strong>${escapeHtml(foundPOI)}</strong> near you…</div>`;
+
+        const pois = await searchPOIsNear(lat, lon, foundPOI);
+        if (!pois.length) {
+          list.innerHTML += "<div>No nearby results found.</div>";
+          return;
+        }
+
+        pois.forEach(p => {
+          const pLat = Number(p.lat);
+          const pLon = Number(p.lon);
+          if (!Number.isFinite(pLat) || !Number.isFinite(pLon)) return;
+
+          const marker = L.marker([pLat, pLon])
+            .addTo(map)
+            .bindPopup(escapeHtml(p.display_name || "Location"));
+
+          const row = document.createElement("div");
+          row.style.cssText = "padding:7px;cursor:pointer;margin-bottom:4px";
+          row.innerHTML = `<b>${escapeHtml((p.display_name || "Location").split(",")[0])}</b>`;
+          row.onclick = () => {
+            map.setView([pLat, pLon], MAP_ZOOM_POI);
+            marker.openPopup();
+          };
+          list.appendChild(row);
+        });
+
+        setTimeout(() => map.invalidateSize(), 50);
+      }, () => {
+        showMapError(list, "Location permission was denied or unavailable.");
+      }, {
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 300000
+      });
+
+      return;
+    }
+
+    const results = await geocode(q);
+    if (!results.length) {
+      showMapError(list, "No map results found for that search.");
+      return;
+    }
+
+    const first = results[0];
+    const lat = Number(first.lat);
+    const lon = Number(first.lon);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      showMapError(list, "The map service returned an invalid location.");
+      return;
+    }
+
     const map = L.map(mapWrapper).setView([lat, lon], MAP_ZOOM_CITY);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OSM' }).addTo(map);
-    
+    addOSMLayer(map);
+
     list.innerHTML = "";
+
     results.forEach(r => {
-      const m = L.marker([r.lat, r.lon]).addTo(map).bindPopup(`<strong>${escapeHtml(r.display_name)}</strong><br><a href="${buildOSMLink(r.lat,r.lon)}" target="_blank">OSM</a>`);
-      const row = document.createElement("div"); row.style.cssText="padding:8px;cursor:pointer";
-      row.onclick=()=>{map.setView([r.lat,r.lon],MAP_ZOOM_POI);m.openPopup();};
-      row.innerHTML=`<b>${escapeHtml(r.display_name.split(",")[0])}</b><br><span style="font-size:12px;color:#9fdff6">${escapeHtml(r.display_name.split(",").slice(1).join(","))}</span>`;
+      const rLat = Number(r.lat);
+      const rLon = Number(r.lon);
+      if (!Number.isFinite(rLat) || !Number.isFinite(rLon)) return;
+
+      const name = r.display_name || "Location";
+      const marker = L.marker([rLat, rLon])
+        .addTo(map)
+        .bindPopup(
+          `<strong>${escapeHtml(name)}</strong><br>
+           <a href="${buildOSMLink(rLat, rLon)}" target="_blank" rel="noopener">Open in OpenStreetMap</a>`
+        );
+
+      const row = document.createElement("div");
+      row.style.cssText = "padding:8px;cursor:pointer;border-radius:6px";
+      row.innerHTML =
+        `<b>${escapeHtml(name.split(",")[0])}</b><br>
+         <span style="font-size:12px;color:#9fdff6">${escapeHtml(name.split(",").slice(1).join(","))}</span>`;
+
+      row.onclick = () => {
+        map.setView([rLat, rLon], MAP_ZOOM_POI);
+        marker.openPopup();
+      };
+
       list.appendChild(row);
     });
+
+    setTimeout(() => map.invalidateSize(), 50);
   }
 
-  if (typeof openWebsite === "function"){
-    const original = openWebsite;
+  if (typeof openWebsite === "function") {
+    const originalOpenWebsite = openWebsite;
+
     openWebsite = async function(){
-      try { await original(); } catch(e){ console.warn("openWebsite error", e); }
-      try { await showMapForQuery(urlInput.value || ""); } catch(e){ console.warn("showMapForQuery error", e); }
+      try {
+        await originalOpenWebsite();
+      } catch (err) {
+        console.warn("Nova search error:", err);
+      }
+
+      try {
+        await showMapForQuery(urlInput.value || "");
+      } catch (err) {
+        console.warn("Nova Map error:", err);
+      }
+
       stopSnow();
     };
   }
