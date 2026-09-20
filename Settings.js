@@ -279,7 +279,7 @@
 input#urlInput:focus{outline:none!important;box-shadow:0 0 0 3px var(--ns-focus-ring,rgba(15,117,168,.35)),0 0 18px var(--nova-accent-light,#a8d0e6)!important;transition:box-shadow .26s ease!important;}
 input#urlInput{color:var(--nova-input-text,#122c40)!important;caret-color:var(--nova-accent)!important;}
 input#urlInput::placeholder{color:var(--nova-input-text,#122c40)!important;opacity:.55;}
-#openBtn,#novaSettingsButton,#novaNewTab{color:var(--nova-on-accent,#fff)!important;}
+#novaSettingsButton,#novaNewTab{color:var(--nova-on-accent,#fff)!important;}
 .nova-tactile-pulse{animation:novaTactilePulse .16s ease-out;}
 @keyframes novaTactilePulse{0%{transform:scale(1)}45%{transform:scale(.975)}100%{transform:scale(1)}}
 html.nova-no-motion .nova-tactile-pulse{animation:none!important;}
@@ -539,6 +539,7 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
     rs.setProperty("--nova-accent",activeAccent);
     rs.setProperty("--nova-accent-light",activeAccent+"66");
     rs.setProperty("--nova-on-accent",readableOn(activeAccent));
+    rs.setProperty("--nova-page-text",activePageText);
     rs.setProperty("--nova-input-text","#122c40");
     rs.setProperty("--ns-on-accent",readableOn(activeAccent));
     rs.setProperty("--ns-focus-ring",activeAccent+"55");
