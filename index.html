@@ -1739,10 +1739,31 @@ document.getElementById("openBtn").addEventListener("click", openWebsite);
   settingsButton.addEventListener("click", function () {
     settingsDropdown.classList.remove("show");
     settingsMenuToggle.setAttribute("aria-expanded", "false");
-    if (typeof window.openNovaSettings === "function") {
-      window.openNovaSettings();
-    } else {
-      document.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+
+    try {
+      if (typeof window.openNovaSettings === "function") {
+        window.openNovaSettings();
+        return;
+      }
+
+      const panel = document.getElementById("novaSettingsPanel");
+      const content = document.getElementById("novaSettingsContent");
+
+      if (panel && content && typeof window.renderNovaSettings === "function") {
+        panel.classList.add("show");
+        panel.setAttribute("aria-hidden", "false");
+        window.renderNovaSettings(content);
+        return;
+      }
+    } catch (err) {
+      console.error("Nova Settings failed to open:", err);
+    }
+
+    // Last-resort fallback: show the existing panel instead of doing nothing.
+    const panel = document.getElementById("novaSettingsPanel");
+    if (panel) {
+      panel.classList.add("show");
+      panel.setAttribute("aria-hidden", "false");
     }
   });
 
