@@ -75,11 +75,6 @@ button:focus-visible {
 #novaSettingsButton::after { display: none; }
 
 /* =========================================================
-   Open Button — glassmorphism
-   ========================================================= */
-.center-container { text-align: center; padding-top: 10px; }
-
-/* =========================================================
    Open Button — glassmorphism (frosted, not glossy)
    ========================================================= */
 .center-container { text-align: center; padding-top: 10px; }
@@ -138,7 +133,6 @@ button:focus-visible {
 /* no ripple / no glare on the glass button */
 #openBtn::after,
 #openBtn::before { display: none; }
-}
 
 /* =========================================================
    Suggestions
