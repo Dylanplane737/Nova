@@ -22,7 +22,13 @@
     saveHistory: "novaSaveHistory",
     restoreSearch: "novaRestoreSearch",
     smoothScroll: "novaSmoothScroll",
-    showTabs: "novaShowTabs"
+    showTabs: "novaShowTabs",
+    smartUI: "novaSmartUI",
+    dynamicAccent: "novaDynamicAccent",
+    tactileFeedback: "novaTactileFeedback",
+    wallpaperAccent: "novaWallpaperAccent",
+    wallpaperLuminance: "novaWallpaperLuminance",
+    wallpaperSignature: "novaWallpaperSignature"
   };
 
   const DEFAULTS = {
@@ -41,7 +47,13 @@
     saveHistory: true,
     restoreSearch: true,
     smoothScroll: true,
-    showTabs: true
+    showTabs: true,
+    smartUI: true,
+    dynamicAccent: true,
+    tactileFeedback: true,
+    wallpaperAccent: "",
+    wallpaperLuminance: null,
+    wallpaperSignature: ""
   };
 
   const THEMES = {
@@ -105,14 +117,94 @@
     return v === null ? fallback : v === "true";
   }
 
-  function readableOn(hex) {
+  function hexRgb(hex) {
     let h = String(hex || "").replace("#", "");
-    if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
-    if (h.length < 6) return "#ffffff";
-    const r = parseInt(h.slice(0, 2), 16);
-    const g = parseInt(h.slice(2, 4), 16);
-    const b = parseInt(h.slice(4, 6), 16);
-    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6 ? "#0f2233" : "#ffffff";
+    if (h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+    if (!/^[0-9a-f]{6}$/i.test(h)) return null;
+    return {r:parseInt(h.slice(0,2),16),g:parseInt(h.slice(2,4),16),b:parseInt(h.slice(4,6),16)};
+  }
+
+  function luminance(rgb) {
+    if (!rgb) return 0;
+    return (0.2126*rgb.r+0.7152*rgb.g+0.0722*rgb.b)/255;
+  }
+
+  function readableOn(hex) {
+    const rgb=hexRgb(hex);
+    return !rgb ? "#ffffff" : (luminance(rgb)>=0.58 ? "#10202a" : "#ffffff");
+  }
+
+  function wallpaperSignature(data) {
+    const str=String(data||"");
+    return str ? str.length+":"+str.slice(0,48)+":"+str.slice(-48) : "";
+  }
+
+  function analyzeWallpaper(dataUrl) {
+    return new Promise(function(resolve,reject){
+      if(!dataUrl) return reject(new Error("No image"));
+      const img=new Image();
+      img.onload=function(){
+        try{
+          const canvas=document.createElement("canvas");
+          const scale=Math.min(1,80/Math.max(img.naturalWidth||1,img.naturalHeight||1));
+          canvas.width=Math.max(1,Math.round((img.naturalWidth||1)*scale));
+          canvas.height=Math.max(1,Math.round((img.naturalHeight||1)*scale));
+          const ctx=canvas.getContext("2d",{willReadFrequently:true});
+          if(!ctx) return reject(new Error("Canvas unavailable"));
+          ctx.drawImage(img,0,0,canvas.width,canvas.height);
+          const pixels=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+          const buckets=new Map();
+          let lumTotal=0,weightTotal=0;
+
+          for(let p=0;p<pixels.length;p+=16){
+            const a=pixels[p+3]/255;
+            if(a<0.15) continue;
+            const r=pixels[p],g=pixels[p+1],b=pixels[p+2];
+            const max=Math.max(r,g,b),min=Math.min(r,g,b);
+            const sat=max?(max-min)/max:0;
+            const weight=a*(0.25+sat*0.75);
+            const key=Math.floor(r/32)+","+Math.floor(g/32)+","+Math.floor(b/32);
+            const old=buckets.get(key)||{w:0,r:0,g:0,b:0};
+            old.w+=weight; old.r+=r*weight; old.g+=g*weight; old.b+=b*weight;
+            buckets.set(key,old);
+            lumTotal+=(0.2126*r+0.7152*g+0.0722*b)/255*a;
+            weightTotal+=a;
+          }
+
+          let best=null;
+          buckets.forEach(function(v){if(!best||v.w>best.w)best=v;});
+          if(!best) best={w:1,r:15,g:117,b:168};
+
+          let r=best.r/best.w,g=best.g/best.w,b=best.b/best.w;
+          let accent="#"+[r,g,b].map(function(v){return Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,"0");}).join("");
+          if(luminance(hexRgb(accent))>0.82){
+            r*=0.72;g*=0.72;b*=0.72;
+            accent="#"+[r,g,b].map(function(v){return Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,"0");}).join("");
+          }
+          resolve({accent:accent,luminance:weightTotal?lumTotal/weightTotal:0.2});
+        }catch(err){reject(err);}
+      };
+      img.onerror=function(){reject(new Error("Image read failed"));};
+      img.src=dataUrl;
+    });
+  }
+
+  let wallpaperWork="";
+  function updateWallpaperMeta(s) {
+    if(!s.background) return;
+    const sig=wallpaperSignature(s.background);
+    if(!sig||s.wallpaperSignature===sig||wallpaperWork===sig)return;
+    wallpaperWork=sig;
+    analyzeWallpaper(s.background).then(function(meta){
+      const latest=loadSettings();
+      if(!latest.background||wallpaperSignature(latest.background)!==sig){wallpaperWork="";return;}
+      latest.wallpaperAccent=meta.accent;
+      latest.wallpaperLuminance=meta.luminance;
+      latest.wallpaperSignature=sig;
+      saveSettings(latest);
+      wallpaperWork="";
+      applySettings(latest);
+    }).catch(function(){wallpaperWork="";});
   }
 
   function loadSettings() {
@@ -137,7 +229,13 @@
       saveHistory: bool(STORAGE.saveHistory, DEFAULTS.saveHistory),
       restoreSearch: bool(STORAGE.restoreSearch, DEFAULTS.restoreSearch),
       smoothScroll: bool(STORAGE.smoothScroll, DEFAULTS.smoothScroll),
-      showTabs: bool(STORAGE.showTabs, DEFAULTS.showTabs)
+      showTabs: bool(STORAGE.showTabs, DEFAULTS.showTabs),
+      smartUI: bool(STORAGE.smartUI, DEFAULTS.smartUI),
+      dynamicAccent: bool(STORAGE.dynamicAccent, DEFAULTS.dynamicAccent),
+      tactileFeedback: bool(STORAGE.tactileFeedback, DEFAULTS.tactileFeedback),
+      wallpaperAccent: localStorage.getItem(STORAGE.wallpaperAccent) || "",
+      wallpaperLuminance: Number.isFinite(Number(localStorage.getItem(STORAGE.wallpaperLuminance))) ? Number(localStorage.getItem(STORAGE.wallpaperLuminance)) : null,
+      wallpaperSignature: localStorage.getItem(STORAGE.wallpaperSignature) || ""
     };
   }
 
@@ -158,8 +256,13 @@
     localStorage.setItem(STORAGE.smoothScroll, String(!!s.smoothScroll));
     localStorage.setItem(STORAGE.showTabs, String(!!s.showTabs));
     localStorage.setItem(STORAGE.darkMode, String(s.theme === "dark"));
-    if (s.background) localStorage.setItem(STORAGE.background, s.background);
-    else localStorage.removeItem(STORAGE.background);
+    localStorage.setItem(STORAGE.smartUI,String(!!s.smartUI));
+    localStorage.setItem(STORAGE.dynamicAccent,String(!!s.dynamicAccent));
+    localStorage.setItem(STORAGE.tactileFeedback,String(!!s.tactileFeedback));
+    if(s.background)localStorage.setItem(STORAGE.background,s.background);else localStorage.removeItem(STORAGE.background);
+    if(s.wallpaperAccent)localStorage.setItem(STORAGE.wallpaperAccent,s.wallpaperAccent);else localStorage.removeItem(STORAGE.wallpaperAccent);
+    if(Number.isFinite(s.wallpaperLuminance))localStorage.setItem(STORAGE.wallpaperLuminance,String(s.wallpaperLuminance));else localStorage.removeItem(STORAGE.wallpaperLuminance);
+    if(s.wallpaperSignature)localStorage.setItem(STORAGE.wallpaperSignature,s.wallpaperSignature);else localStorage.removeItem(STORAGE.wallpaperSignature);
   }
 
   /* ---------- injected design system ---------- */
@@ -173,7 +276,14 @@
 :root{--nova-accent:#0f75a8;--nova-accent-light:#a8d0e6;}
 #openBtn,#novaSettingsButton,#novaNewTab{background:var(--nova-accent)!important;}
 .nova-tab.active,.suggestions div:hover,.suggestions .highlighted{background:var(--nova-accent)!important;}
-input#urlInput:focus{outline:none!important;box-shadow:0 0 0 3px var(--ns-focus-ring,rgba(15,117,168,.35))!important;transition:box-shadow .3s ease!important;}
+input#urlInput:focus{outline:none!important;box-shadow:0 0 0 3px var(--ns-focus-ring,rgba(15,117,168,.35)),0 0 18px var(--nova-accent-light,#a8d0e6)!important;transition:box-shadow .26s ease!important;}
+input#urlInput{color:var(--nova-input-text,#122c40)!important;caret-color:var(--nova-accent)!important;}
+input#urlInput::placeholder{color:var(--nova-input-text,#122c40)!important;opacity:.55;}
+#openBtn,#novaSettingsButton,#novaNewTab{color:var(--nova-on-accent,#fff)!important;}
+.nova-tactile-pulse{animation:novaTactilePulse .16s ease-out;}
+@keyframes novaTactilePulse{0%{transform:scale(1)}45%{transform:scale(.975)}100%{transform:scale(1)}}
+html.nova-no-motion .nova-tactile-pulse{animation:none!important;}
+.ns-smart-disabled{opacity:.45;}
 html.nova-no-motion *,html.nova-no-motion *::before,html.nova-no-motion *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important;}
 html.nova-compact body{margin-top:16px!important;margin-bottom:16px!important;}
 html.nova-compact #wikiSummary,html.nova-compact #relatedMedia{padding:12px!important;}
@@ -363,6 +473,56 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
     document.head.appendChild(style);
   }
 
+  /* ---------- tactile feedback ---------- */
+  function tactileSound(kind){
+    try{
+      const C=window.AudioContext||window.webkitAudioContext;
+      if(!C)return;
+      const ctx=window.__novaAudio||(window.__novaAudio=new C());
+      if(ctx.state==="suspended"&&ctx.resume)ctx.resume().catch(function(){});
+      const now=ctx.currentTime,o=ctx.createOscillator(),g=ctx.createGain();
+      o.type="sine";
+      o.frequency.setValueAtTime(kind==="focus"?560:300,now);
+      o.frequency.exponentialRampToValueAtTime(kind==="focus"?700:240,now+.07);
+      g.gain.setValueAtTime(.0001,now);
+      g.gain.exponentialRampToValueAtTime(kind==="focus"?.018:.012,now+.01);
+      g.gain.exponentialRampToValueAtTime(.0001,now+.085);
+      o.connect(g);g.connect(ctx.destination);o.start(now);o.stop(now+.09);
+    }catch(err){}
+  }
+
+  function tactile(element,kind){
+    const cfg=loadSettings();
+    if(!cfg.tactileFeedback||!element||element.disabled)return;
+    if(cfg.animations){
+      element.classList.remove("nova-tactile-pulse");void element.offsetWidth;
+      element.classList.add("nova-tactile-pulse");
+      setTimeout(function(){element.classList.remove("nova-tactile-pulse");},190);
+    }
+    if(navigator.vibrate&&kind!=="focus"){try{navigator.vibrate(6);}catch(err){}}
+    tactileSound(kind);
+  }
+
+  function installTactile(){
+    if(window.__novaTactileReady)return;
+    document.addEventListener("pointerdown",function(event){
+      const t=event.target;
+      const el=t&&t.closest?t.closest("button,.ns-row,.ns-swatch,.ns-bg-drop,.nova-tab"):null;
+      if(el&&!el.disabled)tactile(el,"tap");
+    },true);
+    document.addEventListener("focusin",function(event){
+      const el=event.target;
+      if(el&&el.id==="urlInput"){
+        const cfg=loadSettings();
+        if(cfg.tactileFeedback){
+          tactileSound("focus");
+          if(navigator.vibrate){try{navigator.vibrate(4);}catch(err){}}
+        }
+      }
+    },true);
+    window.__novaTactileReady=true;
+  }
+
   /* ---------- apply settings ---------- */
   function applySettings(s) {
     installStyles();
@@ -370,11 +530,18 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
     const theme = THEMES[s.theme] || THEMES.classic;
     const pal = PANEL[s.theme] || PANEL.classic;
     const rs = document.documentElement.style;
+    const activeAccent=(s.smartUI&&s.dynamicAccent&&s.wallpaperAccent)?s.wallpaperAccent:s.accent;
+    const activePageText=(s.smartUI&&s.background&&Number.isFinite(s.wallpaperLuminance))
+      ?(s.wallpaperLuminance>=0.56?"#10202a":"#ffffff")
+      :(s.smartUI?readableOn(theme.bg):theme.text);
+    installTactile();
 
-    rs.setProperty("--nova-accent", s.accent);
-    rs.setProperty("--nova-accent-light", s.accent + "66");
-    rs.setProperty("--ns-on-accent", readableOn(s.accent));
-    rs.setProperty("--ns-focus-ring", s.accent + "55");
+    rs.setProperty("--nova-accent",activeAccent);
+    rs.setProperty("--nova-accent-light",activeAccent+"66");
+    rs.setProperty("--nova-on-accent",readableOn(activeAccent));
+    rs.setProperty("--nova-input-text","#122c40");
+    rs.setProperty("--ns-on-accent",readableOn(activeAccent));
+    rs.setProperty("--ns-focus-ring",activeAccent+"55");
     rs.setProperty("--ns-scheme", s.theme === "dark" ? "dark" : "light");
     rs.setProperty("--ns-panel-radius", s.theme === "retro" ? "6px" : "20px");
     rs.setProperty("--ns-card-radius", s.theme === "retro" ? "6px" : "14px");
@@ -395,7 +562,7 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
 
     document.documentElement.style.fontSize = s.fontSize + "px";
     document.body.style.backgroundColor = theme.bg;
-    document.body.style.color = theme.text;
+    document.body.style.color = activePageText;
 
     if (s.background) {
       document.body.style.backgroundImage = 'url("' + s.background.replace(/"/g, "%22") + '")';
@@ -417,6 +584,8 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
 
     const tabs = document.getElementById("novaTabsBar");
     if (tabs) tabs.style.display = s.showTabs ? "" : "none";
+    document.documentElement.classList.toggle("nova-smart-ui",!!s.smartUI);
+    if(s.background)updateWallpaperMeta(s);
   }
 
   /* ---------- data helpers (unchanged) ---------- */
@@ -446,7 +615,7 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
 
   function exportBackup() {
     const data = {
-      novaBackupVersion: 2,
+      novaBackupVersion: 3,
       exportedAt: new Date().toISOString(),
       settings: loadSettings(),
       history: JSON.parse(localStorage.getItem("nova_history") || "[]")
@@ -473,9 +642,13 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
         if (incoming.accent) localStorage.setItem(STORAGE.accent, incoming.accent);
         if (typeof incoming.background === "string") localStorage.setItem(STORAGE.background, incoming.background);
         if (Number.isFinite(Number(incoming.fontSize))) localStorage.setItem(STORAGE.fontSize, String(incoming.fontSize));
+        if(incoming.wallpaperAccent)localStorage.setItem(STORAGE.wallpaperAccent,incoming.wallpaperAccent);
+        if(Number.isFinite(Number(incoming.wallpaperLuminance)))localStorage.setItem(STORAGE.wallpaperLuminance,String(incoming.wallpaperLuminance));
+        if(incoming.wallpaperSignature)localStorage.setItem(STORAGE.wallpaperSignature,incoming.wallpaperSignature);
 
         ["audioPreview","animations","compact","highContrast","suggestions","webResults",
-         "autoFocus","openLinksNewTab","saveHistory","restoreSearch","smoothScroll","showTabs"
+         "autoFocus","openLinksNewTab","saveHistory","restoreSearch","smoothScroll","showTabs",
+         "smartUI","dynamicAccent","tactileFeedback"
         ].forEach(function (key) {
           if (typeof incoming[key] === "boolean") localStorage.setItem(STORAGE[key], String(incoming[key]));
         });
@@ -619,6 +792,23 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
     const q = function (sel) { return container.querySelector(sel); };
     const qa = function (sel) { return container.querySelectorAll(sel); };
 
+    (function addAdaptiveControls(){
+      if(q("#ns-smart-ui"))return;
+      const body=q(".ns-body"),anchor=q("#ns-bg-active");
+      if(!body||!anchor)return;
+      const section=document.createElement("div");
+      section.className="ns-section-title";
+      section.innerHTML=I.spark+" Smart UI";
+      const group=document.createElement("div");
+      group.className="ns-group";
+      group.innerHTML=
+        rowHTML("ns-smart-ui","Smart UI","Automatically adapt text and theme colors")+
+        rowHTML("ns-dynamic-accent","Wallpaper accent","Match the accent to the uploaded background")+
+        rowHTML("ns-tactile","Tactile feedback","Glow, subtle sound, and touch feedback");
+      anchor.insertAdjacentElement("afterend",section);
+      section.insertAdjacentElement("afterend",group);
+    })();
+
     const font = q("#ns-font");
     const status = q("#ns-status");
     const storage = q("#ns-storage");
@@ -744,6 +934,22 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
     toggle("#ns-tabs", "showTabs", function () { applySettings(s); });
     toggle("#ns-audio", "audioPreview");
 
+    function syncAdaptiveControls(){
+      const smart=q("#ns-smart-ui"),dynamic=q("#ns-dynamic-accent"),tact=q("#ns-tactile");
+      if(smart)smart.checked=!!s.smartUI;
+      if(dynamic){
+        dynamic.checked=!!s.dynamicAccent;
+        dynamic.disabled=!s.smartUI||!s.background;
+        const row=dynamic.closest(".ns-row");
+        if(row)row.classList.toggle("ns-smart-disabled",dynamic.disabled);
+      }
+      if(tact)tact.checked=!!s.tactileFeedback;
+    }
+    toggle("#ns-smart-ui","smartUI",function(){syncAdaptiveControls();applySettings(s);saveSettings(s);});
+    toggle("#ns-dynamic-accent","dynamicAccent",function(){applySettings(s);saveSettings(s);});
+    toggle("#ns-tactile","tactileFeedback",function(){saveSettings(s);});
+    syncAdaptiveControls();
+
     /* --- background --- */
     function syncBg() {
       if (s.background) {
@@ -778,6 +984,25 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
       saveSettings(s);
       syncBg();
       msg("Background removed");
+    });
+
+    bgFile.addEventListener("change",function(event){
+      const file=event.target.files&&event.target.files[0];
+      if(!file)return;
+      const reader=new FileReader();
+      reader.onload=function(){
+        const data=String(reader.result||"");
+        analyzeWallpaper(data).then(function(meta){
+          s.wallpaperAccent=meta.accent;
+          s.wallpaperLuminance=meta.luminance;
+          s.wallpaperSignature=wallpaperSignature(data);
+          saveSettings(s);
+          applySettings(s);
+          syncAdaptiveControls();
+          msg("Wallpaper colors matched");
+        }).catch(function(){});
+      };
+      reader.readAsDataURL(file);
     });
 
     /* --- storage meter --- */
