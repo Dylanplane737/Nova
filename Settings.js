@@ -1,5 +1,5 @@
 /* =========================================================
-   NOVA SETTINGS — v2.1 "Glasshouse"
+   NOVA SETTINGS — v2.2 "Adaptive UI"
    ========================================================= */
 (function () {
   "use strict";
@@ -22,7 +22,13 @@
     saveHistory: "novaSaveHistory",
     restoreSearch: "novaRestoreSearch",
     smoothScroll: "novaSmoothScroll",
-    showTabs: "novaShowTabs"
+    showTabs: "novaShowTabs",
+    smartUI: "novaSmartUI",
+    dynamicAccent: "novaDynamicAccent",
+    tactileFeedback: "novaTactileFeedback",
+    wallpaperAccent: "novaWallpaperAccent",
+    wallpaperLuminance: "novaWallpaperLuminance",
+    wallpaperMetaHash: "novaWallpaperMetaHash"
   };
 
   const DEFAULTS = {
@@ -41,7 +47,13 @@
     saveHistory: true,
     restoreSearch: true,
     smoothScroll: true,
-    showTabs: true
+    showTabs: true,
+    smartUI: true,
+    dynamicAccent: true,
+    tactileFeedback: true,
+    wallpaperAccent: "",
+    wallpaperLuminance: null,
+    wallpaperMetaHash: ""
   };
 
   const THEMES = {
@@ -105,14 +117,198 @@
     return v === null ? fallback : v === "true";
   }
 
-  function readableOn(hex) {
-    let h = String(hex || "").replace("#", "");
+  function hexToRgb(hex) {
+    let h = String(hex || "").replace("#", "").trim();
     if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
-    if (h.length < 6) return "#ffffff";
-    const r = parseInt(h.slice(0, 2), 16);
-    const g = parseInt(h.slice(2, 4), 16);
-    const b = parseInt(h.slice(4, 6), 16);
-    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6 ? "#0f2233" : "#ffffff";
+    if (!/^[0-9a-f]{6}$/i.test(h)) return null;
+    return {
+      r: parseInt(h.slice(0, 2), 16),
+      g: parseInt(h.slice(2, 4), 16),
+      b: parseInt(h.slice(4, 6), 16)
+    };
+  }
+
+  function relativeLuminance(rgb) {
+    if (!rgb) return 0;
+    const channels = [rgb.r, rgb.g, rgb.b].map(function (v) {
+      const c = Math.max(0, Math.min(255, Number(v) || 0)) / 255;
+      return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+  }
+
+  function contrastRatio(a, b) {
+    const la = relativeLuminance(hexToRgb(a));
+    const lb = relativeLuminance(hexToRgb(b));
+    const light = Math.max(la, lb);
+    const dark = Math.min(la, lb);
+    return (light + 0.05) / (dark + 0.05);
+  }
+
+  function readableOn(hex) {
+    const candidates = ["#ffffff", "#0f2233"];
+    return contrastRatio(hex, candidates[0]) >= contrastRatio(hex, candidates[1])
+      ? candidates[0]
+      : candidates[1];
+  }
+
+  function rgbToHex(r, g, b) {
+    return "#" + [r, g, b].map(function (v) {
+      return Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0");
+    }).join("");
+  }
+
+  function backgroundSignature(data) {
+    const str = String(data || "");
+    if (!str) return "";
+    return str.length + ":" + str.slice(0, 72) + ":" + str.slice(-72);
+  }
+
+  function analyzeWallpaper(dataUrl) {
+    return new Promise(function (resolve, reject) {
+      if (!dataUrl) {
+        reject(new Error("No wallpaper"));
+        return;
+      }
+
+      const img = new Image();
+
+      img.onload = function () {
+        try {
+          const canvas = document.createElement("canvas");
+          const maxSide = 64;
+          const scale = Math.min(1, maxSide / Math.max(img.naturalWidth || 1, img.naturalHeight || 1));
+          canvas.width = Math.max(1, Math.round((img.naturalWidth || 1) * scale));
+          canvas.height = Math.max(1, Math.round((img.naturalHeight || 1) * scale));
+
+          const ctx = canvas.getContext("2d", { willReadFrequently: true });
+          if (!ctx) throw new Error("Canvas unavailable");
+
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+
+          const bins = new Map();
+          let luminanceSum = 0;
+          let luminanceWeight = 0;
+
+          for (let i = 0; i < pixels.length; i += 16) {
+            const alpha = pixels[i + 3] / 255;
+            if (alpha < 0.15) continue;
+
+            const r = pixels[i];
+            const g = pixels[i + 1];
+            const b = pixels[i + 2];
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            const saturation = max === 0 ? 0 : (max - min) / max;
+            const lum = relativeLuminance({ r: r, g: g, b: b });
+
+            luminanceSum += lum * alpha;
+            luminanceWeight += alpha;
+
+            const qr = Math.min(15, Math.floor(r / 16));
+            const qg = Math.min(15, Math.floor(g / 16));
+            const qb = Math.min(15, Math.floor(b / 16));
+            const key = qr + "," + qg + "," + qb;
+            const weight = alpha * (0.24 + saturation * 0.76);
+
+            const bin = bins.get(key) || { weight: 0, r: 0, g: 0, b: 0 };
+            bin.weight += weight;
+            bin.r += r * weight;
+            bin.g += g * weight;
+            bin.b += b * weight;
+            bins.set(key, bin);
+          }
+
+          let best = null;
+          bins.forEach(function (bin) {
+            if (!best || bin.weight > best.weight) best = bin;
+          });
+
+          if (!best) {
+            best = { r: 15, g: 117, b: 168, weight: 1 };
+          }
+
+          const accentR = best.r / best.weight;
+          const accentG = best.g / best.weight;
+          const accentB = best.b / best.weight;
+          const avgLuminance = luminanceWeight ? luminanceSum / luminanceWeight : 0.18;
+
+          const extracted = rgbToHex(accentR, accentG, accentB);
+          const extractedLum = relativeLuminance(hexToRgb(extracted));
+          let accent = extracted;
+
+          if (extractedLum > 0.88) {
+            accent = rgbToHex(accentR * 0.78, accentG * 0.78, accentB * 0.78);
+          } else if (extractedLum < 0.04) {
+            accent = rgbToHex(accentR + 28, accentG + 28, accentB + 28);
+          }
+
+          resolve({ accent: accent, luminance: avgLuminance });
+        } catch (err) {
+          reject(err);
+        }
+      };
+
+      img.onerror = function () {
+        reject(new Error("Unable to read wallpaper"));
+      };
+
+      img.src = dataUrl;
+    });
+  }
+
+  let wallpaperAnalysisInFlight = "";
+
+  function ensureWallpaperMeta(s) {
+    if (!s.background) {
+      wallpaperAnalysisInFlight = "";
+      return;
+    }
+
+    const signature = backgroundSignature(s.background);
+    if (
+      signature &&
+      s.wallpaperMetaHash === signature &&
+      s.wallpaperAccent &&
+      Number.isFinite(s.wallpaperLuminance)
+    ) {
+      return;
+    }
+
+    if (wallpaperAnalysisInFlight === signature) return;
+    wallpaperAnalysisInFlight = signature;
+
+    analyzeWallpaper(s.background).then(function (meta) {
+      const latest = loadSettings();
+      if (!latest.background || backgroundSignature(latest.background) !== signature) {
+        wallpaperAnalysisInFlight = "";
+        return;
+      }
+
+      latest.wallpaperAccent = meta.accent;
+      latest.wallpaperLuminance = meta.luminance;
+      latest.wallpaperMetaHash = signature;
+      saveSettings(latest);
+      wallpaperAnalysisInFlight = "";
+      applySettings(latest);
+    }).catch(function () {
+      wallpaperAnalysisInFlight = "";
+    });
+  }
+
+  function effectiveAccent(s) {
+    if (s.smartUI && s.dynamicAccent && s.background && s.wallpaperAccent) {
+      return s.wallpaperAccent;
+    }
+    return s.accent;
+  }
+
+  function effectivePageText(s, theme) {
+    if (s.smartUI && s.background && Number.isFinite(s.wallpaperLuminance)) {
+      return s.wallpaperLuminance >= 0.56 ? "#0f2233" : "#ffffff";
+    }
+    return s.smartUI ? readableOn(theme.bg) : theme.text;
   }
 
   function loadSettings() {
@@ -137,7 +333,15 @@
       saveHistory: bool(STORAGE.saveHistory, DEFAULTS.saveHistory),
       restoreSearch: bool(STORAGE.restoreSearch, DEFAULTS.restoreSearch),
       smoothScroll: bool(STORAGE.smoothScroll, DEFAULTS.smoothScroll),
-      showTabs: bool(STORAGE.showTabs, DEFAULTS.showTabs)
+      showTabs: bool(STORAGE.showTabs, DEFAULTS.showTabs),
+      smartUI: bool(STORAGE.smartUI, DEFAULTS.smartUI),
+      dynamicAccent: bool(STORAGE.dynamicAccent, DEFAULTS.dynamicAccent),
+      tactileFeedback: bool(STORAGE.tactileFeedback, DEFAULTS.tactileFeedback),
+      wallpaperAccent: localStorage.getItem(STORAGE.wallpaperAccent) || DEFAULTS.wallpaperAccent,
+      wallpaperLuminance: Number.isFinite(Number(localStorage.getItem(STORAGE.wallpaperLuminance)))
+        ? Number(localStorage.getItem(STORAGE.wallpaperLuminance))
+        : DEFAULTS.wallpaperLuminance,
+      wallpaperMetaHash: localStorage.getItem(STORAGE.wallpaperMetaHash) || DEFAULTS.wallpaperMetaHash
     };
   }
 
@@ -158,8 +362,20 @@
     localStorage.setItem(STORAGE.smoothScroll, String(!!s.smoothScroll));
     localStorage.setItem(STORAGE.showTabs, String(!!s.showTabs));
     localStorage.setItem(STORAGE.darkMode, String(s.theme === "dark"));
+    localStorage.setItem(STORAGE.smartUI, String(!!s.smartUI));
+    localStorage.setItem(STORAGE.dynamicAccent, String(!!s.dynamicAccent));
+    localStorage.setItem(STORAGE.tactileFeedback, String(!!s.tactileFeedback));
     if (s.background) localStorage.setItem(STORAGE.background, s.background);
     else localStorage.removeItem(STORAGE.background);
+
+    if (s.wallpaperAccent) localStorage.setItem(STORAGE.wallpaperAccent, s.wallpaperAccent);
+    else localStorage.removeItem(STORAGE.wallpaperAccent);
+
+    if (Number.isFinite(s.wallpaperLuminance)) localStorage.setItem(STORAGE.wallpaperLuminance, String(s.wallpaperLuminance));
+    else localStorage.removeItem(STORAGE.wallpaperLuminance);
+
+    if (s.wallpaperMetaHash) localStorage.setItem(STORAGE.wallpaperMetaHash, s.wallpaperMetaHash);
+    else localStorage.removeItem(STORAGE.wallpaperMetaHash);
   }
 
   /* ---------- injected design system ---------- */
@@ -170,10 +386,41 @@
     style.id = "nova-settings-overrides";
     style.textContent = `
 /* ===== legacy page overrides (kept) ===== */
-:root{--nova-accent:#0f75a8;--nova-accent-light:#a8d0e6;}
+:root{
+  --nova-accent:#0f75a8;
+  --nova-accent-light:#a8d0e6;
+  --nova-on-accent:#ffffff;
+  --nova-page-text:#ffffff;
+  --nova-input-text:#122c40;
+}
 #openBtn,#novaSettingsButton,#novaNewTab{background:var(--nova-accent)!important;}
 .nova-tab.active,.suggestions div:hover,.suggestions .highlighted{background:var(--nova-accent)!important;}
-input#urlInput:focus{outline:none!important;box-shadow:0 0 0 3px var(--ns-focus-ring,rgba(15,117,168,.35))!important;transition:box-shadow .3s ease!important;}
+input#urlInput:focus{
+  outline:none!important;
+  box-shadow:0 0 0 3px var(--ns-focus-ring,rgba(15,117,168,.35)),0 0 18px var(--nova-accent-light)!important;
+  transition:box-shadow .26s ease!important;
+}
+input#urlInput{color:var(--nova-input-text)!important;caret-color:var(--nova-accent)!important;}
+input#urlInput::placeholder{color:var(--nova-input-text)!important;opacity:.56;}
+#openBtn,#novaSettingsButton,#novaNewTab{color:var(--nova-on-accent)!important;}
+.nova-tab.active{color:var(--nova-on-accent)!important;}
+body{color:var(--nova-page-text)!important;transition:background-color .34s ease,color .24s ease;}
+.nova-tactile-target{touch-action:manipulation;}
+.nova-tactile-pulse{animation:novaTactilePulse .18s ease-out;}
+.nova-search-focus{animation:novaSearchFocus .36s ease-out;}
+.ns-row.is-disabled{opacity:.44;cursor:default;}
+.ns-row.is-disabled .ns-switch{pointer-events:none;}
+@keyframes novaTactilePulse{
+  0%{transform:scale(1);}
+  45%{transform:scale(.975);}
+  100%{transform:scale(1);}
+}
+@keyframes novaSearchFocus{
+  0%{filter:brightness(1);}
+  45%{filter:brightness(1.06);}
+  100%{filter:brightness(1);}
+}
+html.nova-no-motion .nova-tactile-pulse,html.nova-no-motion .nova-search-focus{animation:none!important;}
 html.nova-no-motion *,html.nova-no-motion *::before,html.nova-no-motion *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important;}
 html.nova-compact body{margin-top:16px!important;margin-bottom:16px!important;}
 html.nova-compact #wikiSummary,html.nova-compact #relatedMedia{padding:12px!important;}
@@ -363,18 +610,116 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
     document.head.appendChild(style);
   }
 
-  /* ---------- apply settings ---------- */
+  /* ---------- tactile feedback ---------- */
+  function playTactileTone(kind) {
+    try {
+      const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextCtor) return;
+
+      const ctx = window.__novaTactileAudioContext || (window.__novaTactileAudioContext = new AudioContextCtor());
+      if (ctx.state === "suspended" && ctx.resume) ctx.resume().catch(function () {});
+
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(kind === "focus" ? 560 : 300, now);
+      osc.frequency.exponentialRampToValueAtTime(kind === "focus" ? 720 : 240, now + 0.07);
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(kind === "focus" ? 0.022 : 0.014, now + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.10);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.105);
+    } catch (err) {}
+  }
+
+  function tactilePulse(element, kind) {
+    const s = loadSettings();
+    if (!s.tactileFeedback || !element || element.disabled) return;
+
+    element.classList.remove("nova-tactile-pulse");
+    if (s.animations) {
+      void element.offsetWidth;
+      element.classList.add("nova-tactile-pulse");
+      setTimeout(function () { element.classList.remove("nova-tactile-pulse"); }, 220);
+    }
+
+    if (navigator.vibrate && kind !== "focus") {
+      try { navigator.vibrate(kind === "strong" ? 10 : 6); } catch (err) {}
+    }
+
+    playTactileTone(kind);
+  }
+
+  function installTactileFeedback() {
+    if (window.__novaTactileInstalled) return;
+
+    document.addEventListener("pointerdown", function (event) {
+      if (!event.isTrusted) return;
+      const target = event.target && event.target.closest
+        ? event.target.closest("button,.ns-row,.ns-swatch,.ns-bg-drop,.nova-tab,#urlInput")
+        : null;
+      if (!target || target.id === "urlInput" || target.disabled) return;
+      target.classList.add("nova-tactile-target");
+      tactilePulse(target, "tap");
+    }, true);
+
+    document.addEventListener("focusin", function (event) {
+      if (!event.isTrusted) return;
+      const target = event.target;
+      if (!target || target.id !== "urlInput") return;
+      target.classList.add("nova-tactile-target", "nova-search-focus");
+      const s = loadSettings();
+      if (s.tactileFeedback) {
+        if (navigator.vibrate) {
+          try { navigator.vibrate(4); } catch (err) {}
+        }
+        playTactileTone("focus");
+      }
+    }, true);
+
+    document.addEventListener("focusout", function (event) {
+      const target = event.target;
+      if (target && target.id === "urlInput") {
+        target.classList.remove("nova-search-focus");
+      }
+    }, true);
+
+    document.addEventListener("keydown", function (event) {
+      if (!event.isTrusted || (event.key !== "Enter" && event.key !== " ")) return;
+      const target = event.target && event.target.closest
+        ? event.target.closest("button,.ns-row,.ns-swatch,.ns-bg-drop,.nova-tab")
+        : null;
+      if (!target || target.disabled) return;
+      tactilePulse(target, "tap");
+    }, true);
+
+    window.__novaTactileInstalled = true;
+  }
+
+  /* ---------- apply settings ----------
   function applySettings(s) {
     installStyles();
+    installTactileFeedback();
 
     const theme = THEMES[s.theme] || THEMES.classic;
     const pal = PANEL[s.theme] || PANEL.classic;
     const rs = document.documentElement.style;
+    const accent = effectiveAccent(s);
+    const pageText = effectivePageText(s, theme);
 
-    rs.setProperty("--nova-accent", s.accent);
-    rs.setProperty("--nova-accent-light", s.accent + "66");
-    rs.setProperty("--ns-on-accent", readableOn(s.accent));
-    rs.setProperty("--ns-focus-ring", s.accent + "55");
+    rs.setProperty("--nova-accent", accent);
+    rs.setProperty("--nova-accent-light", accent + "66");
+    rs.setProperty("--nova-on-accent", readableOn(accent));
+    rs.setProperty("--nova-page-text", pageText);
+    rs.setProperty("--nova-input-text", readableOn("#ffffff"));
+    rs.setProperty("--ns-on-accent", readableOn(accent));
+    rs.setProperty("--ns-focus-ring", accent + "55");
     rs.setProperty("--ns-scheme", s.theme === "dark" ? "dark" : "light");
     rs.setProperty("--ns-panel-radius", s.theme === "retro" ? "6px" : "20px");
     rs.setProperty("--ns-card-radius", s.theme === "retro" ? "6px" : "14px");
@@ -395,7 +740,7 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
 
     document.documentElement.style.fontSize = s.fontSize + "px";
     document.body.style.backgroundColor = theme.bg;
-    document.body.style.color = theme.text;
+    document.body.style.color = pageText;
 
     if (s.background) {
       document.body.style.backgroundImage = 'url("' + s.background.replace(/"/g, "%22") + '")';
@@ -413,10 +758,13 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
     document.documentElement.classList.toggle("nova-compact", !!s.compact);
     document.documentElement.classList.toggle("nova-high-contrast", !!s.highContrast);
     document.documentElement.classList.toggle("nova-no-tabs", !s.showTabs);
+    document.documentElement.classList.toggle("nova-no-tactile", !s.tactileFeedback);
     document.body.style.scrollBehavior = s.smoothScroll ? "smooth" : "auto";
 
     const tabs = document.getElementById("novaTabsBar");
     if (tabs) tabs.style.display = s.showTabs ? "" : "none";
+
+    if (s.background) ensureWallpaperMeta(s);
   }
 
   /* ---------- data helpers (unchanged) ---------- */
@@ -446,7 +794,7 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
 
   function exportBackup() {
     const data = {
-      novaBackupVersion: 2,
+      novaBackupVersion: 3,
       exportedAt: new Date().toISOString(),
       settings: loadSettings(),
       history: JSON.parse(localStorage.getItem("nova_history") || "[]")
@@ -474,8 +822,13 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
         if (typeof incoming.background === "string") localStorage.setItem(STORAGE.background, incoming.background);
         if (Number.isFinite(Number(incoming.fontSize))) localStorage.setItem(STORAGE.fontSize, String(incoming.fontSize));
 
+        if (incoming.wallpaperAccent) localStorage.setItem(STORAGE.wallpaperAccent, incoming.wallpaperAccent);
+        if (Number.isFinite(Number(incoming.wallpaperLuminance))) localStorage.setItem(STORAGE.wallpaperLuminance, String(incoming.wallpaperLuminance));
+        if (incoming.wallpaperMetaHash) localStorage.setItem(STORAGE.wallpaperMetaHash, incoming.wallpaperMetaHash);
+
         ["audioPreview","animations","compact","highContrast","suggestions","webResults",
-         "autoFocus","openLinksNewTab","saveHistory","restoreSearch","smoothScroll","showTabs"
+         "autoFocus","openLinksNewTab","saveHistory","restoreSearch","smoothScroll","showTabs",
+         "smartUI","dynamicAccent","tactileFeedback"
         ].forEach(function (key) {
           if (typeof incoming[key] === "boolean") localStorage.setItem(STORAGE[key], String(incoming[key]));
         });
@@ -528,7 +881,7 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
       <h2>Nova Settings</h2>
       <p>Made by Dylan.H&nbsp;:3</p>
     </span>
-    <span class="ns-version">V2</span>
+    <span class="ns-version">V2.2</span>
   </header>
 
   <div class="ns-body">
@@ -567,6 +920,13 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
         <span class="ns-row-title">Custom background</span>
         <span><button type="button" class="ns-btn" id="ns-clear-bg">${I.trash} Remove</button></span>
       </span>
+    </div>
+
+    <div class="ns-section-title">${I.spark} Smart UI</div>
+    <div class="ns-group">
+      ${rowHTML("ns-smart-ui", "Smart UI", "Automatically adapt text contrast and visual colors")}
+      ${rowHTML("ns-dynamic-accent", "Dynamic wallpaper accents", "Match Nova's accent to your background image")}
+      ${rowHTML("ns-tactile", "Tactile feedback", "Glow, click sound, and touch feedback")}
     </div>
 
     <div class="ns-group" style="margin-top:9px">
@@ -744,6 +1104,28 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
     toggle("#ns-tabs", "showTabs", function () { applySettings(s); });
     toggle("#ns-audio", "audioPreview");
 
+    function syncSmartUIControls() {
+      const smart = q("#ns-smart-ui");
+      const dynamic = q("#ns-dynamic-accent");
+      if (smart) smart.checked = !!s.smartUI;
+      if (dynamic) {
+        dynamic.checked = !!s.dynamicAccent;
+        dynamic.disabled = !s.smartUI || !s.background;
+        const row = dynamic.closest(".ns-row");
+        if (row) row.classList.toggle("is-disabled", dynamic.disabled);
+      }
+    }
+
+    toggle("#ns-smart-ui", "smartUI", function () {
+      syncSmartUIControls();
+      applySettings(s);
+    });
+    toggle("#ns-dynamic-accent", "dynamicAccent", function () {
+      applySettings(s);
+    });
+    toggle("#ns-tactile", "tactileFeedback");
+    syncSmartUIControls();
+
     /* --- background --- */
     function syncBg() {
       if (s.background) {
@@ -764,19 +1146,41 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
       const reader = new FileReader();
       reader.onload = function () {
         s.background = String(reader.result || "");
-        applySettings(s);
+        s.wallpaperAccent = "";
+        s.wallpaperLuminance = null;
+        s.wallpaperMetaHash = "";
+
         saveSettings(s);
+        applySettings(s);
         syncBg();
-        msg("Background updated");
+        syncSmartUIControls();
+        msg("Background added — matching colors…");
+
+        const signature = backgroundSignature(s.background);
+        analyzeWallpaper(s.background).then(function (meta) {
+          if (backgroundSignature(loadSettings().background) !== signature) return;
+          s.wallpaperAccent = meta.accent;
+          s.wallpaperLuminance = meta.luminance;
+          s.wallpaperMetaHash = signature;
+          saveSettings(s);
+          applySettings(s);
+          msg("Wallpaper colors matched");
+        }).catch(function () {
+          msg("Background added");
+        });
       };
       reader.readAsDataURL(file);
     });
 
     clearBg.addEventListener("click", function () {
       s.background = "";
-      applySettings(s);
+      s.wallpaperAccent = "";
+      s.wallpaperLuminance = null;
+      s.wallpaperMetaHash = "";
       saveSettings(s);
+      applySettings(s);
       syncBg();
+      syncSmartUIControls();
       msg("Background removed");
     });
 
