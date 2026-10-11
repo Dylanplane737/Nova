@@ -133,18 +133,91 @@ function esc(s){return String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&l
 
 function createCitationModal(){const overlay=document.createElement("div");overlay.id="novaCitationOverlay";overlay.innerHTML=`
 <div id="novaCitationDialog" role="dialog" aria-modal="true" aria-labelledby="novaCitationTitle"><button type="button" id="novaCitationClose" aria-label="Close">×</button><h2 id="novaCitationTitle">MLA Citation Generator</h2>
-<p class="nova-cite-help">Nova fills in what it can find. Check the source page for the author, title, date, and website/journal details before handing this in. Missing information is left blank instead of invented.</p>
+<p class="nova-cite-help">Nova fills in what it can find. Check the source page for the author, title, date, and website/journal details before handing this in. Missing information is left blank instead of invented.</p><div class="nova-cite-actions"><button type="button" class="nova-cite-secondary" id="novaCiteFetch">Try to fetch page details</button></div><p class="nova-cite-help">Fetching details sends this source URL to Jina Reader to retrieve public page metadata. Nothing is fetched until you click the button.</p>
 <div class="nova-cite-fields">
 <label class="nova-cite-field">Author(s)<input id="novaCiteAuthor" placeholder="Leave blank if none is listed"></label><label class="nova-cite-field">Page / article title<input id="novaCiteTitle"></label>
 <label class="nova-cite-field">Website / journal title<input id="novaCiteSite"></label><label class="nova-cite-field">Publisher (if listed)<input id="novaCitePublisher"></label>
 <label class="nova-cite-field">Publication date<input id="novaCiteDate" placeholder="e.g. 11 Oct. 2026 or 2026"></label><label class="nova-cite-field">Date accessed<input id="novaCiteAccessed"></label>
 <label class="nova-cite-field">Volume<input id="novaCiteVolume"></label><label class="nova-cite-field">Issue<input id="novaCiteIssue"></label><label class="nova-cite-field">Page range<input id="novaCitePages"></label><label class="nova-cite-field">DOI<input id="novaCiteDOI" placeholder="10.xxxx/xxxx"></label>
 <label class="nova-cite-field full">Source URL<input id="novaCiteURL"></label></div><div id="novaCitePreview" aria-live="polite"></div>
-<div class="nova-cite-actions"><button type="button" class="nova-cite-primary" id="novaCiteCopy">Copy MLA citation</button><button type="button" class="nova-cite-secondary" id="novaCiteSave">Save to Works Cited</button><button type="button" class="nova-cite-secondary" id="novaCiteCancel">Close</button></div><div id="novaCiteFeedback" role="status"></div></div>`;document.body.appendChild(overlay);overlay.onclick=e=>{if(e.target===overlay)closeCitation();};$("#novaCitationClose").onclick=closeCitation;$("#novaCiteCancel").onclick=closeCitation;["Author","Title","Site","Publisher","Date","Accessed","Volume","Issue","Pages","DOI","URL"].forEach(n=>$("#novaCite"+n).addEventListener("input",updateCitation));$("#novaCiteCopy").onclick=copyCitation;$("#novaCiteSave").onclick=saveCitation;document.addEventListener("keydown",e=>{if(e.key==="Escape"&&overlay.classList.contains("show"))closeCitation();});}
+<div class="nova-cite-actions"><button type="button" class="nova-cite-primary" id="novaCiteCopy">Copy MLA citation</button><button type="button" class="nova-cite-secondary" id="novaCiteSave">Save to Works Cited</button><button type="button" class="nova-cite-secondary" id="novaCiteCancel">Close</button></div><div id="novaCiteFeedback" role="status"></div></div>`;document.body.appendChild(overlay);overlay.onclick=e=>{if(e.target===overlay)closeCitation();};$("#novaCitationClose").onclick=closeCitation;$("#novaCiteCancel").onclick=closeCitation;["Author","Title","Site","Publisher","Date","Accessed","Volume","Issue","Pages","DOI","URL"].forEach(n=>$("#novaCite"+n).addEventListener("input",updateCitation));$("#novaCiteCopy").onclick=copyCitation;$("#novaCiteSave").onclick=saveCitation;$("#novaCiteFetch").onclick=fetchCitationDetails;document.addEventListener("keydown",e=>{if(e.key==="Escape"&&overlay.classList.contains("show"))closeCitation();});}
 function fields(){const v=id=>($("#novaCite"+id).value||"").trim();return{type:$("#novaCitationOverlay").dataset.type||"web",author:v("Author"),title:v("Title"),site:v("Site"),publisher:v("Publisher"),date:v("Date"),accessed:v("Accessed"),volume:v("Volume"),issue:v("Issue"),pages:v("Pages"),doi:v("DOI").replace(/^https?:\/\/doi\.org\//i,""),url:v("URL")};}
 function makeCitation(f){if(!String(f.title||"").trim())return{html:"Fill in a title to preview the citation.",text:""};let h="",t="";if(f.author){h+=esc(f.author)+". ";t+=f.author+". ";}if(f.title){const x="“"+f.title.replace(/[.“”]+$/g,"")+".”";h+=esc(x);t+=x;}if(f.site){h+=(h?" ":"")+"<em>"+esc(f.site)+"</em>";t+=(t?" ":"")+f.site;}if(f.publisher&&f.type!=="academic"&&f.publisher.toLowerCase()!==(f.site||"").toLowerCase()){h+=(h?", ":"")+esc(f.publisher);t+=(t?", ":"")+f.publisher;}if(f.type==="academic"){const m=[];if(f.volume)m.push("vol. "+f.volume);if(f.issue)m.push("no. "+f.issue);if(f.pages)m.push("pp. "+f.pages);if(m.length){h+=(h?", ":"")+esc(m.join(", "));t+=(t?", ":"")+m.join(", ");}}if(f.date){h+=(h?", ":"")+esc(f.date);t+=(t?", ":"")+f.date;}const rawURL=f.doi?"https://doi.org/"+f.doi:f.url;const u=rawURL&&!f.doi?rawURL.replace(/^https?:\/\//i,""):rawURL;if(u){h+=(h?", ":"")+esc(u);t+=(t?", ":"")+u;}if(f.accessed){h+=(h?". ":"")+"Accessed "+esc(f.accessed)+".";t+=(t?". ":"")+"Accessed "+f.accessed+".";}else if(t&&!/[.!?]$/.test(t)){h+=".";t+=".";}return{html:h||"Fill in a title to preview the citation.",text:t};}
 function updateCitation(){const c=makeCitation(fields());$("#novaCitePreview").innerHTML=c.html;$("#novaCitationOverlay").dataset.plain=c.text;$("#novaCitationOverlay").dataset.html=c.html;}
 function openCitation(item){if(!$("#novaCitationOverlay"))createCitationModal();item=item||{};const set=(id,v)=>$("#novaCite"+id).value=v||"";$("#novaCitationOverlay").dataset.type=item.sourceType==="academic"?"academic":"web";set("Author",item.author);set("Title",item.title);set("Site",item.site||siteFromURL(item.url));set("Publisher",item.publisher);set("Date",item.date);set("Accessed",item.sourceType==="academic"?"":accessDate());set("Volume",item.volume);set("Issue",item.issue);set("Pages",item.pages);set("DOI",item.doi);set("URL",item.url);$("#novaCiteFeedback").textContent="";updateCitation();$("#novaCitationOverlay").classList.add("show");setTimeout(()=>$("#novaCiteTitle").focus(),20);}
+async function fetchCitationDetails(){
+  const f = fields();
+  if (!/^https?:\/\//i.test(f.url)) {
+    $("#novaCiteFeedback").textContent = "Enter a full source URL before fetching details.";
+    return;
+  }
+  const button = $("#novaCiteFetch");
+  button.disabled = true;
+  $("#novaCiteFeedback").textContent = "Fetching public page metadata…";
+  try {
+    const endpoint = "https://r.jina.ai/" + f.url;
+    const response = await fetch(endpoint, {
+      headers: { "Accept": "text/plain", "X-Respond-With": "html" }
+    });
+    if (!response.ok) throw new Error("Metadata service returned " + response.status);
+    const markup = await response.text();
+    const doc = new DOMParser().parseFromString(markup, "text/html");
+    const meta = names => {
+      for (const name of names) {
+        const node = doc.querySelector('meta[name="' + name + '"],meta[property="' + name + '"],meta[itemprop="' + name + '"]');
+        if (node && node.content && node.content.trim()) return node.content.trim();
+      }
+      return "";
+    };
+
+    let author = meta(["author", "article:author", "dc.creator", "DC.Creator", "parsely-author", "byl"]);
+    let title = meta(["og:title", "twitter:title", "citation_title", "dc.title"]) || (doc.title || "").trim();
+    let site = meta(["og:site_name", "application-name", "publisher"]);
+    let publisher = meta(["dc.publisher", "DC.Publisher", "citation_publisher"]);
+    let date = meta(["article:published_time", "datePublished", "dateCreated", "pubdate", "publish-date", "date", "dc.date.issued", "DC.Date.Issued", "citation_publication_date"]);
+
+    // Prefer Schema.org structured data when publishers provide it.
+    const inspect = value => {
+      if (!value || typeof value !== "object") return;
+      if (Array.isArray(value)) { value.forEach(inspect); return; }
+      if (!author && value.author) {
+        const authors = Array.isArray(value.author) ? value.author : [value.author];
+        author = authors.map(item => typeof item === "string" ? item : [item.familyName, item.givenName].filter(Boolean).join(", ") || item.name || "").filter(Boolean).join(authors.length > 1 ? ", " : "");
+        if (authors.length > 2 && author) author = author.split(", ").slice(0, 2).join(", ") + ", et al.";
+      }
+      if (!title) title = value.headline || value.name || "";
+      if (!date) date = value.datePublished || value.dateCreated || "";
+      if (!publisher && value.publisher) publisher = typeof value.publisher === "string" ? value.publisher : value.publisher.name || "";
+      if (!site && value.isPartOf && value.isPartOf.name) site = value.isPartOf.name;
+      Object.values(value).forEach(child => {
+        if (child && typeof child === "object") inspect(child);
+      });
+    };
+    doc.querySelectorAll('script[type="application/ld+json"]').forEach(script => {
+      try { inspect(JSON.parse(script.textContent || "")); } catch {}
+    });
+
+    const setIfBlank = (id, value) => {
+      const field = $("#novaCite" + id);
+      if (field && !field.value.trim() && value) field.value = String(value).trim();
+    };
+    setIfBlank("Author", author);
+    setIfBlank("Title", title);
+    if (site) $("#novaCiteSite").value = site;
+    setIfBlank("Publisher", publisher);
+    setIfBlank("Date", date);
+    updateCitation();
+    const found = [author, title, site, publisher, date].filter(Boolean).length;
+    $("#novaCiteFeedback").textContent = found
+      ? "Filled available page metadata. Check every field; pages may publish incomplete or incorrect metadata."
+      : "No useful citation metadata was found. Fill in the missing fields manually.";
+  } catch (error) {
+    console.warn("Nova citation metadata fetch failed:", error);
+    $("#novaCiteFeedback").textContent = "Could not fetch metadata from this page. Fill in the missing details manually.";
+  } finally {
+    button.disabled = false;
+  }
+}
 function closeCitation(){if($("#novaCitationOverlay"))$("#novaCitationOverlay").classList.remove("show");}
 async function copyCitation(){const o=$("#novaCitationOverlay"),t=o.dataset.plain||"",h=o.dataset.html||"";if(!t){$("#novaCiteFeedback").textContent="Add a title before copying.";return;}try{if(navigator.clipboard&&window.ClipboardItem&&window.isSecureContext)await navigator.clipboard.write([new ClipboardItem({"text/html":new Blob([h],{type:"text/html"}),"text/plain":new Blob([t],{type:"text/plain"})})]);else if(navigator.clipboard&&navigator.clipboard.writeText)await navigator.clipboard.writeText(t);else throw Error("Clipboard unavailable");$("#novaCiteFeedback").textContent="Citation copied. Double-check the source details before using it.";}catch(e){$("#novaCiteFeedback").textContent="Browser blocked clipboard access. Select the citation preview and copy it manually.";}}
 function loadCitations(){try{const a=JSON.parse(localStorage.getItem(citeKey)||"[]");return Array.isArray(a)?a:[];}catch{return[];}}
