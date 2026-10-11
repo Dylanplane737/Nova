@@ -8,7 +8,7 @@ let commonsOffset = 0;
 let currentQuery = "";
 let webSearchRequestCounter = 0;
 const webSearchPageCache = new Map();
-const WEB_PROVIDER_PAGE_SIZE = 30;
+const WEB_PROVIDER_PAGE_SIZE = 10;
 const WEB_UI_PAGE_SIZE = 10;
 let imagesList = [];
 let currentLightIndex = -1;
@@ -404,59 +404,43 @@ async function searchWebBatch(query, batchIndex){
   const bucket = getWebSearchBucket(query);
   if (bucket.batches.has(batchIndex)) return bucket.batches.get(batchIndex);
 
+  // Fetch a fresh provider page for each Nova page instead of assuming
+  // DuckDuckGo returns 30 results in one HTML response.
   const offset = batchIndex * WEB_PROVIDER_PAGE_SIZE;
   const params = new URLSearchParams();
   params.set("q", query);
   params.set("kl", "us-en");
-  if (batchIndex > 0) {
-    // DDG uses provider batches of about 30. Subsequent pages generally
-    // require its vqd continuation token, captured from the first response.
-    params.set("s", String(offset));
-    params.set("dc", String(offset + 1));
-    params.set("v", "l");
-    params.set("o", "json");
-    params.set("api", "/d.js");
-    params.set("nextParams", "");
-    if (bucket.vqd) params.set("vqd", bucket.vqd);
-  }
+  if (offset > 0) params.set("s", String(offset));
 
   const target = "https://html.duckduckgo.com/html/?" + params.toString();
   const readerUrl = "https://r.jina.ai/" + target;
   let body = "";
   let results = [];
+
   try {
     const response = await fetch(readerUrl, {
       headers: { "Accept": "text/plain", "X-Respond-With": "html" }
     });
     if (!response.ok) throw new Error("Web search gateway returned " + response.status);
     body = await response.text();
-
-    const doc = new DOMParser().parseFromString(body, "text/html");
-    const token = doc.querySelector('input[name="vqd"]');
-    if (token && token.value) bucket.vqd = token.value;
-    if (!bucket.vqd) {
-      const match = body.match(/name=["']vqd["'][^>]*value=["']([^"']+)["']/i) ||
-        body.match(/value=["']([^"']+)["'][^>]*name=["']vqd["']/i);
-      if (match) bucket.vqd = match[1];
-    }
-
     results = parseWebSearchHTML(body);
     if (!results.length) results = parseWebSearchResults(body, WEB_PROVIDER_PAGE_SIZE);
 
-    // If the reader returned a content wrapper instead of HTML, retry in its
-    // normal Markdown mode. This keeps the first page usable on more hosts.
+    // Retry in Markdown mode if the HTML response could not be parsed.
     if (!results.length) {
-      const markdownResponse = await fetch(readerUrl, { headers: { "Accept": "text/plain" } });
+      const markdownResponse = await fetch(readerUrl, {
+        headers: { "Accept": "text/plain" }
+      });
       if (!markdownResponse.ok) throw new Error("Web search gateway returned " + markdownResponse.status);
       body = await markdownResponse.text();
       results = parseWebSearchResults(body, WEB_PROVIDER_PAGE_SIZE);
-      const tokenMatch = body.match(/name=["']vqd["'][^>]*value=["']([^"']+)["']/i);
-      if (tokenMatch) bucket.vqd = tokenMatch[1];
     }
   } catch (error) {
     console.warn("Nova web search HTML fetch failed; trying Markdown:", error);
     try {
-      const fallback = await fetch(readerUrl, { headers: { "Accept": "text/plain" } });
+      const fallback = await fetch(readerUrl, {
+        headers: { "Accept": "text/plain" }
+      });
       if (!fallback.ok) throw new Error("Web search gateway returned " + fallback.status);
       body = await fallback.text();
       results = parseWebSearchResults(body, WEB_PROVIDER_PAGE_SIZE);
@@ -482,17 +466,11 @@ async function searchWeb(query, page = 1){
   if (!query) return { results: [], failed: false, hasNext: false };
 
   const safePage = Math.max(1, Number.parseInt(page, 10) || 1);
-  const bucketIndex = Math.floor((safePage - 1) / 3);
-  const positionInBatch = (safePage - 1) % 3;
   try {
-    const batch = await searchWebBatch(query, bucketIndex);
-    const preparedBatch = window.NovaResearchPrepareWebResults &&
-      typeof window.NovaResearchPrepareWebResults === "function"
-      ? (window.NovaResearchPrepareWebResults(batch) || batch)
-      : batch;
-    const start = positionInBatch * WEB_UI_PAGE_SIZE;
-    const results = preparedBatch.slice(start, start + WEB_UI_PAGE_SIZE);
-    const hasNext = start + WEB_UI_PAGE_SIZE < batch.length || batch.length >= WEB_PROVIDER_PAGE_SIZE;
+    // Each Nova page maps to its own provider offset (0, 10, 20, ...).
+    // Source filtering/ranking is applied once, when the page is rendered.
+    const results = await searchWebBatch(query, safePage - 1);
+    const hasNext = results.length >= WEB_PROVIDER_PAGE_SIZE;
     return { results, failed: false, hasNext };
   } catch (err) {
     console.warn("Nova web search failed:", err);
