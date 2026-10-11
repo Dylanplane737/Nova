@@ -486,8 +486,12 @@ async function searchWeb(query, page = 1){
   const positionInBatch = (safePage - 1) % 3;
   try {
     const batch = await searchWebBatch(query, bucketIndex);
+    const preparedBatch = window.NovaResearchPrepareWebResults &&
+      typeof window.NovaResearchPrepareWebResults === "function"
+      ? (window.NovaResearchPrepareWebResults(batch) || batch)
+      : batch;
     const start = positionInBatch * WEB_UI_PAGE_SIZE;
-    const results = batch.slice(start, start + WEB_UI_PAGE_SIZE);
+    const results = preparedBatch.slice(start, start + WEB_UI_PAGE_SIZE);
     const hasNext = start + WEB_UI_PAGE_SIZE < batch.length || batch.length >= WEB_PROVIDER_PAGE_SIZE;
     return { results, failed: false, hasNext };
   } catch (err) {
