@@ -472,10 +472,31 @@ function renderWebResults(results, query){
 async function loadWebResults(query){
   if (!webSearchContainer || !webSearchResults) return;
 
+  // Capture the tab and query that launched this request. If the user
+  // switches tabs or starts a different search, don't write stale results
+  // into the newly active tab.
+  const tabState = window.NovaTabsState;
+  const originTabId = tabState && typeof tabState.getActiveTabId === "function"
+    ? tabState.getActiveTabId()
+    : null;
+  const requestIsCurrent = () => {
+    if (urlInput.value.trim() !== query) return false;
+    if (
+      originTabId !== null &&
+      window.NovaTabsState &&
+      typeof window.NovaTabsState.getActiveTabId === "function" &&
+      window.NovaTabsState.getActiveTabId() !== originTabId
+    ) return false;
+    return true;
+  };
+
   webSearchContainer.classList.remove("visible");
   webSearchResults.innerHTML = "<p>Searching the web...</p>";
+  webSearchResults.setAttribute("data-query", query);
 
   const search = await searchWeb(query);
+
+  if (!requestIsCurrent()) return;
 
   if (search.results.length) {
     renderWebResults(search.results, query);
@@ -495,6 +516,12 @@ async function loadWebResults(query){
   }
 }
 
+// Allow the tab switcher to retry a web search that was interrupted by
+// switching tabs while its result request was still in flight.
+window.NovaReloadWebResults = function (query) {
+  return loadWebResults(query);
+};
+
 // --- Main openWebsite ---
 async function openWebsite(){
   const input = urlInput.value.trim();
@@ -502,7 +529,10 @@ async function openWebsite(){
   suggestionBox.innerHTML = ""; suggestionBox.classList.remove("show");
   resultContainer.classList.remove("visible");
   if (webSearchContainer) webSearchContainer.classList.remove("visible");
-  if (webSearchResults) webSearchResults.innerHTML = "";
+  if (webSearchResults) {
+    webSearchResults.innerHTML = "";
+    webSearchResults.removeAttribute("data-query");
+  }
   dictionaryContainer.style.display = "none";
   timelineContainer.style.display = "none";
   rickrollContainer.style.display = "none";
