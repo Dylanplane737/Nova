@@ -296,6 +296,8 @@
       nodes: {},
 
       resultVisible: false,
+      webResultsVisible: false,
+      webResultsQuery: "",
       dictionaryVisible: false,
       timelineVisible: false,
       rickrollVisible: false,
@@ -333,7 +335,8 @@
     "videosSection",
     "dictionaryResults",
     "timelineList",
-    "relatedSearches"
+    "relatedSearches",
+    "webSearchResults"
   ];
 
 
@@ -391,6 +394,19 @@
     tab.resultVisible =
       results &&
       results.classList.contains("visible");
+
+    const webResultsContainer =
+      document.getElementById("webSearchContainer");
+    const webResultsContent =
+      document.getElementById("webSearchResults");
+
+    tab.webResultsVisible = !!(
+      webResultsContainer &&
+      webResultsContainer.classList.contains("visible")
+    );
+    tab.webResultsQuery = webResultsContent
+      ? webResultsContent.getAttribute("data-query") || ""
+      : "";
 
     tab.dictionaryVisible =
       dictionary &&
@@ -480,6 +496,18 @@
 
     if (results) {
       results.classList.remove("visible");
+    }
+
+    const webResultsContainer =
+      document.getElementById("webSearchContainer");
+    if (webResultsContainer) {
+      webResultsContainer.classList.remove("visible");
+    }
+
+    const webResultsContent =
+      document.getElementById("webSearchResults");
+    if (webResultsContent) {
+      webResultsContent.removeAttribute("data-query");
     }
 
 
@@ -598,6 +626,26 @@
         "visible",
         !!tab.resultVisible
       );
+    }
+
+    const webResultsContainer =
+      document.getElementById("webSearchContainer");
+    const webResultsContent =
+      document.getElementById("webSearchResults");
+
+    if (webResultsContainer) {
+      webResultsContainer.classList.toggle(
+        "visible",
+        !!tab.webResultsVisible
+      );
+    }
+
+    if (webResultsContent) {
+      if (tab.webResultsQuery) {
+        webResultsContent.setAttribute("data-query", tab.webResultsQuery);
+      } else {
+        webResultsContent.removeAttribute("data-query");
+      }
     }
 
 
