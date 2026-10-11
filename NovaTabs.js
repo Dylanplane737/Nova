@@ -648,6 +648,27 @@
       }
     }
 
+    // If this tab was switched away from while web search was still loading,
+    // rerun only that tab's web search when the user returns to it.
+    const needsWebResultsReload = !!(
+      !tab.webResultsVisible &&
+      tab.webResultsQuery &&
+      webResultsContent &&
+      /searching the web/i.test(webResultsContent.textContent || "") &&
+      localStorage.getItem("novaWebResults") !== "false"
+    );
+
+    if (needsWebResultsReload) {
+      const restoredTabId = tab.id;
+      requestAnimationFrame(() => {
+        if (tabs[activeTabIndex]?.id !== restoredTabId) return;
+        if (urlInput.value.trim() !== tab.webResultsQuery) return;
+        if (typeof window.NovaReloadWebResults === "function") {
+          window.NovaReloadWebResults(tab.webResultsQuery);
+        }
+      });
+    }
+
 
     const dictionary =
       document.getElementById("dictionaryContainer");
@@ -1121,6 +1142,15 @@
   */
 
   renderTabs();
+
+  // Expose only the active tab identity so asynchronous results can
+  // verify that they still belong to the tab that launched the request.
+  window.NovaTabsState = {
+    getActiveTabId: function () {
+      const activeTab = tabs[activeTabIndex];
+      return activeTab ? activeTab.id : null;
+    }
+  };
 
 
   console.log(
