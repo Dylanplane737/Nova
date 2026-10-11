@@ -292,12 +292,14 @@
       name,
 
       input: "",
+      searchMode: "web",
 
       nodes: {},
 
       resultVisible: false,
       webResultsVisible: false,
       webResultsQuery: "",
+      webResultsPage: 1,
       dictionaryVisible: false,
       timelineVisible: false,
       rickrollVisible: false,
@@ -336,7 +338,11 @@
     "dictionaryResults",
     "timelineList",
     "relatedSearches",
-    "webSearchResults"
+    "webSearchResults",
+    "novaResearchImagesResults",
+    "novaResearchVideosResults",
+    "novaResearchAcademicResults",
+    "novaResearchToolsResults"
   ];
 
 
@@ -407,6 +413,13 @@
     tab.webResultsQuery = webResultsContent
       ? webResultsContent.getAttribute("data-query") || ""
       : "";
+    tab.webResultsPage = webResultsContent
+      ? Math.max(1, Number.parseInt(webResultsContent.getAttribute("data-page") || "1", 10) || 1)
+      : 1;
+
+    if (window.NovaResearchState && typeof window.NovaResearchState.getActiveMode === "function") {
+      tab.searchMode = window.NovaResearchState.getActiveMode() || "web";
+    }
 
     tab.dictionaryVisible =
       dictionary &&
@@ -508,6 +521,7 @@
       document.getElementById("webSearchResults");
     if (webResultsContent) {
       webResultsContent.removeAttribute("data-query");
+      webResultsContent.removeAttribute("data-page");
     }
 
 
@@ -646,12 +660,14 @@
       } else {
         webResultsContent.removeAttribute("data-query");
       }
+      webResultsContent.setAttribute("data-page", String(tab.webResultsPage || 1));
     }
 
     // If this tab was switched away from while web search was still loading,
     // rerun only that tab's web search when the user returns to it.
     const needsWebResultsReload = !!(
-      !tab.webResultsVisible &&
+      (!tab.webResultsVisible || tab.searchMode === "web" || tab.searchMode === "research") &&
+      (tab.searchMode === "web" || tab.searchMode === "research") &&
       tab.webResultsQuery &&
       webResultsContent &&
       /searching the web/i.test(webResultsContent.textContent || "") &&
@@ -741,6 +757,10 @@
 
     renderTabs();
 
+    if (typeof window.NovaResearchSetMode === "function") {
+      window.NovaResearchSetMode(tab.searchMode || "web", { persist: false, runSearch: false });
+    }
+
     requestAnimationFrame(() => {
       window.scrollTo(0, tab.scrollY || 0);
     });
@@ -771,6 +791,10 @@
 
     activeTabIndex =
       tabs.length - 1;
+
+    if (typeof window.NovaResearchSetMode === "function") {
+      window.NovaResearchSetMode("web", { persist: false, runSearch: false });
+    }
 
     renderTabs();
 
@@ -827,6 +851,10 @@
       activeTabIndex = 0;
 
       clearNovaUI();
+
+      if (typeof window.NovaResearchSetMode === "function") {
+        window.NovaResearchSetMode("web", { persist: false, runSearch: false });
+      }
 
       renderTabs();
 
@@ -1149,6 +1177,14 @@
     getActiveTabId: function () {
       const activeTab = tabs[activeTabIndex];
       return activeTab ? activeTab.id : null;
+    },
+    getActiveSearchMode: function () {
+      const activeTab = tabs[activeTabIndex];
+      return activeTab ? (activeTab.searchMode || "web") : "web";
+    },
+    setActiveSearchMode: function (mode) {
+      const activeTab = tabs[activeTabIndex];
+      if (activeTab) activeTab.searchMode = mode || "web";
     }
   };
 
