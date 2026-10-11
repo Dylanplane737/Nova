@@ -6,6 +6,7 @@ let highlightedIndex = -1;
 let debounceTimer;
 let commonsOffset = 0;
 let currentQuery = "";
+let webSearchRequestCounter = 0;
 let imagesList = [];
 let currentLightIndex = -1;
 let matrixState = { running: false, intervalId: null };
@@ -362,17 +363,19 @@ function parseWebSearchResults(markdown){
     ) || "";
 
     results.push({ title, url, snippet });
-    if (results.length >= 8) break;
+    if (results.length >= 10) break;
   }
 
   return results;
 }
 
-async function searchWeb(query){
+async function searchWeb(query, page = 1){
   if (!query) return { results: [], failed: false };
 
+  const safePage = Math.max(1, Number.parseInt(page, 10) || 1);
+  const offset = (safePage - 1) * 10;
   const target = "https://html.duckduckgo.com/html/?q=" +
-    encodeURIComponent(query) + "&kl=us-en";
+    encodeURIComponent(query) + "&kl=us-en&s=" + offset;
 
   const readerUrl = "https://r.jina.ai/" + target;
 
@@ -411,13 +414,59 @@ function novaFallbackFavicon(){
     );
 }
 
-function renderWebResults(results, query){
+function appendWebPagination(page, hasNext, query){
+  const pager = document.createElement("nav");
+  pager.className = "nova-web-pagination";
+  pager.setAttribute("aria-label", "Web result pages");
+
+  const previous = document.createElement("button");
+  previous.type = "button";
+  previous.className = "nova-page-button";
+  previous.textContent = "← Previous";
+  previous.disabled = page <= 1;
+  previous.addEventListener("click", () => {
+    if (page > 1) loadWebResults(query, page - 1);
+  });
+
+  const current = document.createElement("span");
+  current.className = "nova-page-current";
+  current.textContent = "Page " + page;
+
+  const next = document.createElement("button");
+  next.type = "button";
+  next.className = "nova-page-button";
+  next.textContent = "Next →";
+  next.disabled = !hasNext;
+  next.addEventListener("click", () => {
+    if (hasNext) loadWebResults(query, page + 1);
+  });
+
+  pager.append(previous, current, next);
+  webSearchResults.appendChild(pager);
+}
+
+function renderWebResults(results, query, page = 1, hasNext = results.length >= 10){
   if (!webSearchContainer || !webSearchResults) return;
+
+  const fetchedCount = results.length;
+  if (window.NovaResearchPrepareWebResults && typeof window.NovaResearchPrepareWebResults === "function") {
+    results = window.NovaResearchPrepareWebResults(results) || results;
+  }
 
   webSearchResults.innerHTML = "";
 
   if (!results.length) {
-    webSearchContainer.classList.remove("visible");
+    const empty = document.createElement("p");
+    empty.className = "nova-empty-results";
+    empty.textContent = window.NovaResearchState &&
+      window.NovaResearchState.getActiveMode() === "research"
+      ? "No results on this page match your selected source filters. Try another page or loosen the filters."
+      : (page > 1 ? "No more web results were found on this page." : "No matching web results were found.");
+    webSearchResults.appendChild(empty);
+    appendWebPagination(page, hasNext, query);
+    webSearchContainer.classList.add("visible");
+    webSearchResults.setAttribute("data-query", query);
+    webSearchResults.setAttribute("data-page", String(page));
     return;
   }
 
@@ -444,8 +493,7 @@ function renderWebResults(results, query){
     link.rel = "noopener noreferrer";
     link.textContent = result.title;
 
-    header.appendChild(favicon);
-    header.appendChild(link);
+    header.append(favicon, link);
 
     const url = document.createElement("div");
     url.className = "web-result-url";
@@ -459,27 +507,45 @@ function renderWebResults(results, query){
     snippet.className = "web-result-snippet";
     snippet.textContent = result.snippet || "Open this result to view the website.";
 
-    card.appendChild(header);
-    card.appendChild(url);
-    card.appendChild(snippet);
+    const actions = document.createElement("div");
+    actions.className = "web-result-actions";
+
+    const cite = document.createElement("button");
+    cite.type = "button";
+    cite.className = "nova-cite-button";
+    cite.textContent = "Cite";
+    cite.addEventListener("click", () => {
+      if (typeof window.NovaResearchOpenCitation === "function") {
+        window.NovaResearchOpenCitation({
+          sourceType: "web",
+          title: result.title,
+          url: result.url
+        });
+      }
+    });
+    actions.appendChild(cite);
+
+    card.append(header, url, snippet, actions);
     webSearchResults.appendChild(card);
   });
 
+  appendWebPagination(page, hasNext, query);
   webSearchContainer.classList.add("visible");
   webSearchResults.setAttribute("data-query", query);
+  webSearchResults.setAttribute("data-page", String(page));
 }
 
-async function loadWebResults(query){
+async function loadWebResults(query, page = 1){
   if (!webSearchContainer || !webSearchResults) return;
 
-  // Capture the tab and query that launched this request. If the user
-  // switches tabs or starts a different search, don't write stale results
-  // into the newly active tab.
+  const safePage = Math.max(1, Number.parseInt(page, 10) || 1);
+  const requestToken = ++webSearchRequestCounter;
   const tabState = window.NovaTabsState;
   const originTabId = tabState && typeof tabState.getActiveTabId === "function"
     ? tabState.getActiveTabId()
     : null;
   const requestIsCurrent = () => {
+    if (requestToken !== webSearchRequestCounter) return false;
     if (urlInput.value.trim() !== query) return false;
     if (
       originTabId !== null &&
@@ -493,13 +559,23 @@ async function loadWebResults(query){
   webSearchContainer.classList.remove("visible");
   webSearchResults.innerHTML = "<p>Searching the web...</p>";
   webSearchResults.setAttribute("data-query", query);
+  webSearchResults.setAttribute("data-page", String(safePage));
 
-  const search = await searchWeb(query);
-
+  const search = await searchWeb(query, safePage);
   if (!requestIsCurrent()) return;
 
   if (search.results.length) {
-    renderWebResults(search.results, query);
+    renderWebResults(search.results, query, safePage, search.results.length >= 10);
+  } else if (safePage > 1 && !search.failed) {
+    webSearchResults.innerHTML = "";
+    const empty = document.createElement("p");
+    empty.className = "nova-empty-results";
+    empty.textContent = "No more web results were found. Go back to the previous page or try a different search.";
+    webSearchResults.appendChild(empty);
+    appendWebPagination(safePage, false, query);
+    webSearchContainer.classList.add("visible");
+    webSearchResults.setAttribute("data-query", query);
+    webSearchResults.setAttribute("data-page", String(safePage));
   } else {
     const fallbackUrl = search.failed
       ? "https://www.google.com/search?q=" + encodeURIComponent(query)
@@ -511,15 +587,22 @@ async function loadWebResults(query){
       '<p>No web results loaded. <a href="' + fallbackUrl +
       '" target="_blank" rel="noopener noreferrer" style="color:#bfeaff">' +
       'Open ' + fallbackName + '</a></p>';
-
     webSearchContainer.classList.add("visible");
+    webSearchResults.setAttribute("data-query", query);
+    webSearchResults.setAttribute("data-page", String(safePage));
   }
 }
 
 // Allow the tab switcher to retry a web search that was interrupted by
 // switching tabs while its result request was still in flight.
-window.NovaReloadWebResults = function (query) {
-  return loadWebResults(query);
+window.NovaReloadWebResults = function (query, page = 1) {
+  return loadWebResults(query, page);
+};
+
+window.NovaOpenImageLightbox = function (urls, index) {
+  imagesList = Array.isArray(urls) ? urls.slice() : [];
+  currentLightIndex = -1;
+  openLightbox(index);
 };
 
 // --- Main openWebsite ---
@@ -564,6 +647,18 @@ async function openWebsite(){
     // 1) Wiki summary
     const summary = await getWikiSummary(input);
     await webResultsPromise;
+
+    // Research Mode focuses on source lists instead of the legacy
+    // summary/media stack; normal Web mode keeps its existing behavior.
+    if (
+      window.NovaResearchState &&
+      typeof window.NovaResearchState.getActiveMode === "function" &&
+      window.NovaResearchState.getActiveMode() === "research"
+    ) {
+      hideSpinner();
+      return;
+    }
+
     if (!summary) {
       // Web results can still make this a useful search even without Wikipedia.
       resultContainer.classList.remove("visible");
