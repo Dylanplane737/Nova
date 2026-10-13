@@ -12,7 +12,7 @@ const WEB_PROVIDER_PAGE_SIZE = 10;
 const WEB_UI_PAGE_SIZE = 10;
 let imagesList = [];
 let currentLightIndex = -1;
-let matrixState = { running: false, intervalId: null };
+let matrixState = { running: false, intervalId: null, escapeHandler: null };
 
 // Elements
 const urlInput = document.getElementById("urlInput");
@@ -289,13 +289,19 @@ function startMatrix(){
       ypos[i]++;
     }
   }, 50);
-  function escStop(e){ if (e.key === "Escape") stopMatrix(); }
-  document.addEventListener("keydown", escStop, { once: true });
+  matrixState.escapeHandler = function escStop(e) {
+    if (e.key === "Escape") stopMatrix();
+  };
+  document.addEventListener("keydown", matrixState.escapeHandler);
 }
 function stopMatrix(){
   if (matrixState.intervalId) clearInterval(matrixState.intervalId);
   matrixState.intervalId = null;
   matrixState.running = false;
+  if (matrixState.escapeHandler) {
+    document.removeEventListener("keydown", matrixState.escapeHandler);
+    matrixState.escapeHandler = null;
+  }
   matrixCanvas.style.display = "none";
   const ctx = matrixCanvas.getContext && matrixCanvas.getContext("2d");
   if (ctx) ctx.clearRect(0,0,matrixCanvas.width,matrixCanvas.height);
@@ -1369,7 +1375,10 @@ openWebsite = async function(){
       }
 
       try {
-        await showMapForQuery(urlInput.value || "");
+        const activeQuery = String(urlInput.value || "").trim().toLowerCase();
+        if (!NOVA_EASTER_EGG_QUERIES.has(activeQuery)) {
+          await showMapForQuery(urlInput.value || "");
+        }
       } catch (err) {
         console.warn("Nova Map error:", err);
       }
