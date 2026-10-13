@@ -581,6 +581,7 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
     document.documentElement.classList.toggle("nova-compact", !!s.compact);
     document.documentElement.classList.toggle("nova-high-contrast", !!s.highContrast);
     document.documentElement.classList.toggle("nova-no-tabs", !s.showTabs);
+    document.documentElement.classList.toggle("nova-custom-background", !!s.background);
     document.body.style.scrollBehavior = s.smoothScroll ? "smooth" : "auto";
 
     const tabs = document.getElementById("novaTabsBar");
