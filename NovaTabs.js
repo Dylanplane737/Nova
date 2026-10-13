@@ -188,6 +188,30 @@
       transform: none;
     }
 
+    #novaHomeButton {
+      height: 36px !important;
+      min-width: 68px;
+      margin: 0 !important;
+      padding: 0 10px !important;
+      border-radius: 9px;
+      background: rgba(255,255,255,0.12);
+      color: white;
+      box-shadow: none;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    #novaHomeButton:hover {
+      background: rgba(255,255,255,0.22);
+      transform: none;
+    }
+
+    #novaHomeButton.is-active {
+      background: #2596be;
+      color: white;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.20);
+    }
+
     @media (max-width: 600px) {
       .nova-tab {
         min-width: 105px;
@@ -214,6 +238,13 @@
   newTabButton.title = "New Tab";
   newTabButton.setAttribute("aria-label", "New Tab");
 
+  const homeButton = document.createElement("button");
+  homeButton.id = "novaHomeButton";
+  homeButton.type = "button";
+  homeButton.textContent = "⌂ Home";
+  homeButton.title = "Home";
+  homeButton.setAttribute("aria-label", "Home");
+
   const settingsMenu = document.createElement("div");
   settingsMenu.id = "novaSettingsMenu";
 
@@ -229,18 +260,28 @@
   settingsDropdown.id = "novaSettingsDropdown";
   settingsDropdown.setAttribute("role", "menu");
 
+  const bookmarksButton = document.createElement("button");
+  bookmarksButton.id = "novaBookmarksButton";
+  bookmarksButton.className = "nova-overflow-item";
+  bookmarksButton.type = "button";
+  bookmarksButton.setAttribute("role", "menuitem");
+  bookmarksButton.innerHTML = "<span style='font-size:17px'>☆</span><span>Bookmarks</span>";
+
   const settingsButton = document.createElement("button");
   settingsButton.id = "novaSettingsButton";
+  settingsButton.className = "nova-overflow-item";
   settingsButton.type = "button";
   settingsButton.setAttribute("role", "menuitem");
   settingsButton.innerHTML = "<span style='font-size:17px'>⚙️</span><span>Settings</span>";
 
+  settingsDropdown.appendChild(bookmarksButton);
   settingsDropdown.appendChild(settingsButton);
   settingsMenu.appendChild(settingsMenuToggle);
   settingsMenu.appendChild(settingsDropdown);
 
   tabBar.appendChild(tabsList);
   tabBar.appendChild(newTabButton);
+  tabBar.appendChild(homeButton);
   tabBar.appendChild(settingsMenu);
 
   settingsMenuToggle.addEventListener("click", function (event) {
@@ -249,9 +290,27 @@
     settingsMenuToggle.setAttribute("aria-expanded", String(open));
   });
 
-  settingsButton.addEventListener("click", function () {
+  function closeSettingsDropdown() {
     settingsDropdown.classList.remove("show");
     settingsMenuToggle.setAttribute("aria-expanded", "false");
+  }
+
+  homeButton.addEventListener("click", function () {
+    closeSettingsDropdown();
+    if (window.NovaFeatures && typeof window.NovaFeatures.showHome === "function") {
+      window.NovaFeatures.showHome();
+    }
+  });
+
+  bookmarksButton.addEventListener("click", function () {
+    closeSettingsDropdown();
+    if (window.NovaFeatures && typeof window.NovaFeatures.showBookmarks === "function") {
+      window.NovaFeatures.showBookmarks();
+    }
+  });
+
+  settingsButton.addEventListener("click", function () {
+    closeSettingsDropdown();
 
     try {
       if (typeof window.openNovaSettings === "function") {
