@@ -126,7 +126,6 @@ button:focus-visible {
 #wikiSummary, #relatedMedia { background: rgba(0,0,0,0.28); padding:18px; border-radius:12px; box-sizing:border-box; color:white; }
 #wikiSummary { width: 44%; min-width:260px; text-align:left; max-height:720px; overflow:auto; }
 #relatedMedia { width: 44%; min-width:260px; display:flex; flex-direction:column; gap:12px; max-height:720px; overflow:auto; }
-#clac { width: 44%; min-width: 260px; margin-left:auto; margin-right:auto; gap:20px; justify-content:center; align-items:flex-start; }
 
 #wikiSummary img { width:100%; border-radius:10px; box-shadow: 0 6px 18px rgba(0,0,0,0.25); }
 
