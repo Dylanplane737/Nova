@@ -35,7 +35,6 @@ const closeLightbox = document.getElementById("closeLightbox");
 const lightPrev = document.getElementById("lightPrev");
 const lightNext = document.getElementById("lightNext");
 const matrixCanvas = document.getElementById("matrixCanvas");
-const calc = document.getElementById("clac");
 
 // helpers
 function showSpinner(){ spinner.classList.add("visible"); spinner.setAttribute("aria-hidden","false"); }
@@ -306,6 +305,10 @@ function stopMatrix(){
   const ctx = matrixCanvas.getContext && matrixCanvas.getContext("2d");
   if (ctx) ctx.clearRect(0,0,matrixCanvas.width,matrixCanvas.height);
 }
+
+const NOVA_EASTER_EGG_QUERIES = new Set([
+  "67", "rickroll", "matrix", "pong", "nyancat", "flip", "doge", "credits"
+]);
 
 // --- Easter Eggs dispatcher ---
 function checkEasterEggs(input){
@@ -970,108 +973,6 @@ document.addEventListener("keydown", function (e) {
     if (e.ctrlKey && e.key.toLowerCase() === "h") { e.preventDefault(); showHistory(); }
     if (e.ctrlKey && e.key.toLowerCase() === "r") { e.preventDefault(); localStorage.clear(); alert("Nova settings have been reset!"); }
 });
-
-// ================== CALCULATOR / GRAPH SYSTEM ==================
-const calcWrapper = document.createElement("div");
-calcWrapper.id = "Clac";
-calcWrapper.style.cssText = `width:92%;max-width:780px;margin:14px auto;padding:16px;border-radius:12px;background:rgba(255,255,255,0.95);color:#111;font-family:"Pixelify Sans",monospace;display:none;box-shadow:0 4px 18px rgba(0,0,0,0.2);position:relative;transition:all 0.25s ease;`;
-
-// FIX: Changed .search-container to .search-wrap
-document.querySelector(".search-wrap")?.insertAdjacentElement("afterend", calcWrapper);
-
-const calcInput = document.createElement("input");
-calcInput.type = "text";
-calcInput.placeholder = "Type your calculation (supports x for graph)!";
-calcInput.style.cssText = "width:100%;padding:14px 16px;font-size:20px;border-radius:8px;border:1px solid #ccc;margin-bottom:12px;box-sizing:border-box;outline:none;";
-calcWrapper.appendChild(calcInput);
-
-const calcResult = document.createElement("div");
-calcResult.style.cssText = "width:100%;min-height:48px;padding:12px 14px;background:#f3f3f3;border-radius:8px;font-size:22px;color:#0f75a8;cursor:text;";
-calcWrapper.appendChild(calcResult);
-
-const graphCanvas = document.createElement("canvas");
-graphCanvas.width = 720;
-graphCanvas.height = 360;
-graphCanvas.style.cssText = "width:100%;margin-top:16px;background:#0b0b0b;border-radius:10px;display:none;";
-calcWrapper.appendChild(graphCanvas);
-const gctx = graphCanvas.getContext("2d");
-
-function fixExpression(expr){ return expr.replace(/(\d)(x)/gi, "$1*$2"); }
-function isSimple(expr){ return /^[0-9+\-*/().\s]+$/.test(expr); }
-function hasVariable(expr){ return /x/i.test(expr); }
-function safeEval(expr){ try { return Function(`"use strict"; return (${expr})`)(); } catch { return "Error"; } }
-
-function drawGrid(w, h, scale){
-  gctx.strokeStyle = "rgba(255,255,255,0.1)"; gctx.lineWidth = 1;
-  for (let x = 0; x <= w; x += scale){ gctx.beginPath(); gctx.moveTo(x, 0); gctx.lineTo(x, h); gctx.stroke(); }
-  for (let y = 0; y <= h; y += scale){ gctx.beginPath(); gctx.moveTo(0, y); gctx.lineTo(w, y); gctx.stroke(); }
-}
-function drawAxes(w, h, scale){
-  gctx.strokeStyle = "rgba(255,255,255,0.8)"; gctx.lineWidth = 2;
-  gctx.beginPath(); gctx.moveTo(0, h/2); gctx.lineTo(w, h/2); gctx.stroke();
-  gctx.beginPath(); gctx.moveTo(w/2, 0); gctx.lineTo(w/2, h); gctx.stroke();
-  gctx.fillStyle = "#fff"; gctx.font = "12px monospace";
-  for (let i = -10; i <= 10; i++){
-    gctx.fillText(i, w/2 + i * scale + 2, h/2 - 4);
-    gctx.fillText(-i, w/2 + 4, h/2 - i * scale + 4);
-  }
-}
-function drawGraph(expr){
-  const w = graphCanvas.width, h = graphCanvas.height, scale = w / 20;
-  gctx.clearRect(0, 0, w, h); drawGrid(w, h, scale); drawAxes(w, h, scale);
-  gctx.strokeStyle = "#00c8ff"; gctx.lineWidth = 2; gctx.beginPath(); let first = true;
-  for (let px = 0; px <= w; px++){
-    const x = (px - w/2) / scale; let y;
-    try { y = safeEval(expr.replace(/x/gi, `(${x})`)); } catch { continue; }
-    const py = h/2 - y * scale;
-    if (first){ gctx.moveTo(px, py); first = false; } else { gctx.lineTo(px, py); }
-  }
-  gctx.stroke(); graphCanvas.style.display = "block";
-}
-
-function updateCalc(){
-  let val = calcInput.value.trim();
-  if (!val){ calcResult.textContent = ""; graphCanvas.style.display = "none"; return; }
-  val = fixExpression(val);
-  if (isSimple(val) && !hasVariable(val)){ calcResult.textContent = `${val} = ${safeEval(val)}`; graphCanvas.style.display = "none"; return; }
-  if (hasVariable(val)){ calcResult.textContent = `y = ${val}`; drawGraph(val); return; }
-  calcResult.textContent = `= ${safeEval(val)}`;
-}
-calcInput.addEventListener("input", updateCalc);
-calcResult.addEventListener("click", ()=>calcInput.focus());
-
-function checkCalcTrigger(query){
-  const q = query.toLowerCase();
-  if (q.match(/[0-9+\-*/().x]/) || q.includes("calc")){
-    calcWrapper.style.display = "block"; updateCalc(); return true;
-  }
-  calcWrapper.style.display = "none"; graphCanvas.style.display = "none"; return false;
-}
-
-const NOVA_EASTER_EGG_QUERIES = new Set([
-  "67", "rickroll", "matrix", "pong", "nyancat", "flip", "doge", "credits"
-]);
-
-const originalOpen = openWebsite;
-openWebsite = async function(){
-  const val = String(urlInput.value || "").trim();
-
-  // Easter eggs must run before calculator detection. The calculator's
-  // broad expression check otherwise catches "67" as a number and "matrix"
-  // because it contains the letter "x".
-  if (NOVA_EASTER_EGG_QUERIES.has(val.toLowerCase())) {
-    calcWrapper.style.display = "none";
-    graphCanvas.style.display = "none";
-    await originalOpen();
-    return;
-  }
-
-  const handled = checkCalcTrigger(val);
-  // Keep calculator expressions from falling through to web search.
-  if (handled) return;
-  calcWrapper.style.display = "none";
-  await originalOpen();
-};
 
 // ================== MAP SYSTEM ==================
 /*
