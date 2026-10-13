@@ -2,8 +2,8 @@
 (() => {
 "use strict";
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
-const input=$("#urlInput"),center=$(".center-container"),web=$("#webSearchContainer"),webResults=$("#webSearchResults"),legacy=$("#resultContainer"),dict=$("#dictionaryContainer"),timeline=$("#timelineContainer");
-if(!input||!center||!web||!webResults)return;
+const input=$("#urlInput"),web=$("#webSearchContainer"),webResults=$("#webSearchResults"),legacy=$("#resultContainer"),dict=$("#dictionaryContainer"),timeline=$("#timelineContainer");
+if(!input||!web||!webResults)return;
 const citeKey="novaResearchCitations",prefsKey="novaResearchPreferences",modes=["web","research","images","videos","academic","tools"];
 let mode="web",requestId=0;
 const defaultPrefs={strict:false,selected:{government:true,university:true,academic:true,reference:true,news:true,nonprofit:true}};
@@ -60,7 +60,7 @@ const nav=document.createElement("nav");nav.id="novaSearchModes";nav.setAttribut
 [["web","Web"],["research","Research"],["images","Images"],["videos","Videos"],["academic","Academic"],["tools","Tools"]].forEach(([key,label])=>{
  const b=document.createElement("button");b.type="button";b.className="nova-mode-button";b.dataset.mode=key;b.textContent=label;b.setAttribute("aria-pressed","false");
  b.onclick=()=>{setMode(key);if(key==="tools")renderShelf();else if(input.value.trim())runSearch(key);};nav.appendChild(b);
-});center.insertAdjacentElement("afterend",nav);
+});(input.closest(".search-wrap")||input.parentElement).insertAdjacentElement("afterend",nav);
 
 const extra=document.createElement("section");extra.id="novaResearchResults";extra.setAttribute("aria-live","polite");
 extra.innerHTML=`
@@ -234,7 +234,6 @@ function exportCitationsHTML(){const a=sortCitations(loadCitations());if(!a.leng
 async function copyAllCitations(){const a=sortCitations(loadCitations());if(!a.length){$("#novaResearchShelfStatus").textContent="No citations to copy yet.";return;}const plain=a.map(x=>x.text).join("\n\n");const html='<div>'+a.map(x=>'<p style="margin:0 0 1em 0;padding-left:.5in;text-indent:-.5in">'+(x.html||esc(x.text))+'</p>').join("")+'</div>';try{if(navigator.clipboard&&window.ClipboardItem&&window.isSecureContext)await navigator.clipboard.write([new ClipboardItem({"text/html":new Blob([html],{type:"text/html"}),"text/plain":new Blob([plain],{type:"text/plain"})})]);else await navigator.clipboard.writeText(plain);$("#novaResearchShelfStatus").textContent="Alphabetized citations copied. Rich-text paste preserves italics where supported.";}catch{$("#novaResearchShelfStatus").textContent="Clipboard blocked. Use formatted HTML export instead.";}}
 window.NovaResearchOpenCitation=openCitation;
 
-document.addEventListener("click",e=>{if(!e.target.closest("#openBtn")||mode==="web")return;e.preventDefault();e.stopImmediatePropagation();runSearch(mode);},true);
 document.addEventListener("keydown",e=>{if(e.target!==input||e.key!=="Enter"||mode==="web")return;const s=$("#suggestionBox");if(s&&s.classList.contains("show")&&$(".highlighted",s))return;e.preventDefault();e.stopImmediatePropagation();runSearch(mode);},true);
 setMode(window.NovaTabsState&&window.NovaTabsState.getActiveSearchMode?window.NovaTabsState.getActiveSearchMode():"web",{persist:false,runSearch:false});renderShelf();
 console.log("%cNova Research ready","color:#2596be;font-weight:bold");
