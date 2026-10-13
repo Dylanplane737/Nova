@@ -41,6 +41,23 @@
       text-align: left;
     }
 
+    /* Floating frosted-glass bar only when a custom wallpaper is active. */
+    html.nova-custom-background #novaTabsBar {
+      margin-left: 8px;
+      margin-right: 8px;
+
+      background: rgba(255, 255, 255, 0.14);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      backdrop-filter: blur(16px) saturate(180%);
+
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 18px;
+
+      color: var(--nova-page-text, #ffffff);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+
     #novaTabsList {
       display: flex;
       align-items: center;
