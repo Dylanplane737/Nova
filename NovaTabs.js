@@ -163,53 +163,60 @@
       transform: none !important;
     }
 
-    #novaNewTab {
+    /* Keep the three tab-bar controls aligned and themed together. */
+    #novaNewTab,
+    #novaHomeButton,
+    #novaSettingsMenuToggle {
+      box-sizing: border-box;
       width: 38px !important;
+      min-width: 38px !important;
       height: 36px !important;
-
-      min-width: 38px;
-
       margin: 0 !important;
       padding: 0 !important;
-
-      border-radius: 9px;
-
-      background: rgba(255,255,255,0.12);
-      color: white;
-
-      box-shadow: none;
-
-      font-size: 23px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--nova-accent, #0f75a8) !important;
+      border-radius: 9px !important;
+      background: var(--nova-accent, #0f75a8) !important;
+      color: var(--nova-on-accent, #ffffff) !important;
+      box-shadow: none !important;
       line-height: 1;
+      transition: filter 0.15s ease, background 0.15s ease, border-color 0.15s ease;
     }
 
-    #novaNewTab:hover {
-      background: rgba(255,255,255,0.22);
-      transform: none;
+    #novaNewTab {
+      font-size: 23px;
     }
 
     #novaHomeButton {
-      height: 36px !important;
-      min-width: 68px;
-      margin: 0 !important;
-      padding: 0 10px !important;
-      border-radius: 9px;
-      background: rgba(255,255,255,0.12);
-      color: white;
-      box-shadow: none;
-      font-size: 13px;
-      white-space: nowrap;
+      font-size: 20px;
     }
 
-    #novaHomeButton:hover {
-      background: rgba(255,255,255,0.22);
-      transform: none;
+    #novaHomeButton svg {
+      display: block;
+      width: 19px;
+      height: 19px;
+    }
+
+    #novaSettingsMenuToggle {
+      font-size: 22px;
+      letter-spacing: 1px;
+    }
+
+    #novaNewTab:hover,
+    #novaHomeButton:hover,
+    #novaSettingsMenuToggle:hover {
+      filter: brightness(1.09);
+      transform: none !important;
     }
 
     #novaHomeButton.is-active {
-      background: #2596be;
-      color: white;
-      box-shadow: 0 3px 8px rgba(0,0,0,0.20);
+      background: var(--ns-hover, rgba(255,255,255,0.16)) !important;
+      color: var(--ns-text, var(--nova-page-text, #ffffff)) !important;
+      border-color: var(--nova-accent, #0f75a8) !important;
+      box-shadow: inset 0 0 0 1px var(--nova-accent, #0f75a8) !important;
+      filter: none;
     }
 
     @media (max-width: 600px) {
@@ -241,7 +248,7 @@
   const homeButton = document.createElement("button");
   homeButton.id = "novaHomeButton";
   homeButton.type = "button";
-  homeButton.textContent = "⌂ Home";
+  homeButton.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7"></path><path d="M5 9.5V21h14V9.5"></path><path d="M9 21v-6h6v6"></path></svg>';
   homeButton.title = "Home";
   homeButton.setAttribute("aria-label", "Home");
 
