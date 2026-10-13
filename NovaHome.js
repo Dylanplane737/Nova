@@ -8,13 +8,13 @@
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
   const input = $("#urlInput");
-  const openButton = $("#openBtn");
-  const center = $(".center-container");
+  const homeButton = $("#novaHomeButton");
+  const bookmarksButton = $("#novaBookmarksButton");
   const searchModes = $("#novaSearchModes");
   const webBox = $("#webSearchContainer");
   const webResults = $("#webSearchResults");
 
-  if (!input || !center || !openButton || !webBox || !webResults) return;
+  if (!input || !homeButton || !bookmarksButton || !webBox || !webResults) return;
 
   const BOOKMARKS_KEY = "novaBookmarksV1";
   const SHORTCUTS_KEY = "novaHomeShortcutsV1";
@@ -35,20 +35,7 @@
   const style = document.createElement("style");
   style.id = "nova-v261-styles";
   style.textContent = `
-    #novaFeatureNav {
-      display:flex; justify-content:center; align-items:center; flex-wrap:wrap;
-      gap:8px; margin:14px auto 8px; padding:0 8px;
-    }
-    .nova-feature-nav-btn {
-      margin:0!important; padding:9px 16px!important; border-radius:999px!important;
-      border:1px solid rgba(255,255,255,.25)!important;
-      background:rgba(255,255,255,.13)!important;
-      color:var(--nova-page-text,#fff)!important; box-shadow:0 3px 12px rgba(0,0,0,.10)!important;
-      -webkit-backdrop-filter:blur(12px) saturate(160%);
-      backdrop-filter:blur(12px) saturate(160%); font-size:14px!important;
-    }
-    .nova-feature-nav-btn.is-active { background:rgba(255,255,255,.28)!important; border-color:rgba(255,255,255,.55)!important; }
-    .nova-feature-nav-btn::after,.nova-action-btn::after,.nova-shortcut-card::after { display:none!important; }
+    .nova-action-btn::after,.nova-shortcut-card::after { display:none!important; }
     #novaHomePanel,#novaBookmarksPanel {
       width:min(1060px,94%); box-sizing:border-box; margin:18px auto 24px; padding:clamp(15px,3vw,25px);
       border:1px solid rgba(255,255,255,.22); border-radius:20px;
@@ -137,19 +124,9 @@
       .nova-bookmark-row { align-items:flex-start; flex-wrap:wrap; }
       .nova-bookmark-actions { width:100%; padding-left:40px; }
       .nova-bookmark-actions .nova-action-btn { flex:1; }
-      .nova-feature-nav-btn { padding:8px 13px!important; }
     }
   `;
   document.head.appendChild(style);
-
-  const featureNav = document.createElement("nav");
-  featureNav.id = "novaFeatureNav";
-  featureNav.setAttribute("aria-label", "Nova pages");
-
-  const homeButton = makeButton("⌂ Home", "nova-feature-nav-btn", () => showPage("home"));
-  const bookmarksButton = makeButton("☆ Bookmarks", "nova-feature-nav-btn", () => showPage("bookmarks"));
-  featureNav.append(homeButton, bookmarksButton);
-  center.insertAdjacentElement("afterend", featureNav);
 
   const homePanel = document.createElement("section");
   homePanel.id = "novaHomePanel";
@@ -177,7 +154,7 @@
     '<p class="nova-home-muted" id="novaBookmarkCount" aria-live="polite"></p>' +
     '<div class="nova-bookmark-list" id="novaBookmarkList"></div>';
 
-  const afterAnchor = searchModes || featureNav;
+  const afterAnchor = searchModes || input.closest(".search-wrap") || input;
   afterAnchor.insertAdjacentElement("afterend", homePanel);
   homePanel.insertAdjacentElement("afterend", bookmarkPanel);
 
@@ -340,7 +317,6 @@
       if (next === "bookmarks") renderBookmarkList();
     }
 
-    featureNav.hidden = false;
   }
 
   function showSearchPage() {
@@ -366,15 +342,6 @@
   function looksLikeDirectUrl(value) {
     return value.includes(".") || /^https?:\/\//i.test(value);
   }
-
-  // Hide Home when a real search is launched, but leave it in place when a URL
-  // is being opened in another tab by Nova's existing URL launcher.
-  document.addEventListener("click", event => {
-    const target = event.target;
-    if (target && target.closest && target.closest("#openBtn")) {
-      if (input.value.trim() && !looksLikeDirectUrl(input.value.trim())) showSearchPage();
-    }
-  }, true);
 
   input.addEventListener("keydown", event => {
     if (event.key === "Enter" && input.value.trim() && !looksLikeDirectUrl(input.value.trim())) showSearchPage();
