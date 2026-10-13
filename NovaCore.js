@@ -315,7 +315,7 @@ function checkEasterEggs(input){
   }
 
   if (!lower) return false;
-  if (lower === "67"){ rickrollContainer.style.display = "block"; window.scrollTo({top:0,behavior:"smooth"}); return true; }
+  if (lower === "67" || lower === "rickroll"){ rickrollContainer.style.display = "block"; window.scrollTo({top:0,behavior:"smooth"}); return true; }
   if (lower === "matrix"){ startMatrix(); return true; }
   if (lower === "pong"){ window.open("https://sethclydesdale.github.io/browser-pong/","_blank"); return true; }
   if (lower === "nyancat"){ window.open("https://www.nyan.cat","_blank"); return true; }
@@ -1042,12 +1042,27 @@ function checkCalcTrigger(query){
   calcWrapper.style.display = "none"; graphCanvas.style.display = "none"; return false;
 }
 
+const NOVA_EASTER_EGG_QUERIES = new Set([
+  "67", "rickroll", "matrix", "pong", "nyancat", "flip", "doge", "credits"
+]);
+
 const originalOpen = openWebsite;
 openWebsite = async function(){
-  const val = urlInput.value;
+  const val = String(urlInput.value || "").trim();
+
+  // Easter eggs must run before calculator detection. The calculator's
+  // broad expression check otherwise catches "67" as a number and "matrix"
+  // because it contains the letter "x".
+  if (NOVA_EASTER_EGG_QUERIES.has(val.toLowerCase())) {
+    calcWrapper.style.display = "none";
+    graphCanvas.style.display = "none";
+    await originalOpen();
+    return;
+  }
+
   const handled = checkCalcTrigger(val);
-  // FIX: Added return so it doesn't search Wikipedia for math equations
-  if (handled) return; 
+  // Keep calculator expressions from falling through to web search.
+  if (handled) return;
   calcWrapper.style.display = "none";
   await originalOpen();
 };
