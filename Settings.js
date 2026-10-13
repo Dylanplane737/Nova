@@ -274,12 +274,12 @@
     style.textContent = `
 /* ===== legacy page overrides (kept) ===== */
 :root{--nova-accent:#0f75a8;--nova-accent-light:#a8d0e6;}
-#novaSettingsButton,#novaNewTab{background:var(--nova-accent)!important;}
+#novaNewTab{background:var(--nova-accent)!important;}
 .nova-tab.active,.suggestions div:hover,.suggestions .highlighted{background:var(--nova-accent)!important;}
 input#urlInput:focus{outline:none!important;box-shadow:0 0 0 3px var(--ns-focus-ring,rgba(15,117,168,.35)),0 0 18px var(--nova-accent-light,#a8d0e6)!important;transition:box-shadow .26s ease!important;}
 input#urlInput{color:var(--nova-input-text,#122c40)!important;caret-color:var(--nova-accent)!important;}
 input#urlInput::placeholder{color:var(--nova-input-text,#122c40)!important;opacity:.55;}
-#novaSettingsButton,#novaNewTab{color:var(--nova-on-accent,#fff)!important;}
+#novaNewTab{color:var(--nova-on-accent,#fff)!important;}
 .nova-tactile-pulse{animation:novaTactilePulse .16s ease-out;}
 @keyframes novaTactilePulse{0%{transform:scale(1)}45%{transform:scale(.975)}100%{transform:scale(1)}}
 html.nova-no-motion .nova-tactile-pulse{animation:none!important;}
