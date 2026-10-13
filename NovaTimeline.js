@@ -43,5 +43,3 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-// Fix Open Button
-document.getElementById("openBtn").addEventListener("click", openWebsite);
