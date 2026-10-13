@@ -212,10 +212,11 @@
     }
 
     #novaHomeButton.is-active {
-      background: var(--ns-hover, rgba(255,255,255,0.16)) !important;
-      color: var(--ns-text, var(--nova-page-text, #ffffff)) !important;
+      /* Keep the same themed fill as + and ⋮; indicate selection with an inner ring. */
+      background: var(--nova-accent, #0f75a8) !important;
+      color: var(--nova-on-accent, #ffffff) !important;
       border-color: var(--nova-accent, #0f75a8) !important;
-      box-shadow: inset 0 0 0 1px var(--nova-accent, #0f75a8) !important;
+      box-shadow: inset 0 0 0 1px var(--nova-on-accent, #ffffff) !important;
       filter: none;
     }
 
