@@ -106,16 +106,22 @@
     .nova-result-filter { flex:1 1 250px; min-width:0; padding:10px 12px; border:1px solid rgba(255,255,255,.28); border-radius:10px; background:rgba(255,255,255,.94); color:#173747; box-sizing:border-box; font:13px system-ui,sans-serif; }
     .nova-result-sort { padding:9px 11px; border:1px solid rgba(255,255,255,.28); border-radius:10px; background:#f6fbff; color:#173747; font:13px system-ui,sans-serif; }
     .nova-result-count { width:100%; margin:0; color:rgba(255,255,255,.75); font:11px system-ui,sans-serif; }
-    .web-result { margin:9px 0; padding:14px!important; border:1px solid rgba(255,255,255,.17)!important; border-radius:14px; background:rgba(0,0,0,.14); transition:background .14s ease,border-color .14s ease,transform .14s ease; }
+    .web-result { position:relative; margin:9px 0; padding:14px 54px 14px 14px!important; border:1px solid rgba(255,255,255,.17)!important; border-radius:14px; background:rgba(0,0,0,.14); transition:background .14s ease,border-color .14s ease,transform .14s ease; }
     .web-result:hover { background:rgba(255,255,255,.07); border-color:rgba(255,255,255,.33)!important; }
-    .web-result-head { gap:10px!important; }
+    .web-result-head { gap:10px!important; padding-right:4px; }
     .web-result-head a { line-height:1.35; }
     .web-result-favicon { width:24px!important; height:24px!important; flex-basis:24px!important; border:1px solid rgba(255,255,255,.12); }
     .web-result-url { display:inline-block; margin-top:6px!important; padding:3px 7px; border-radius:999px; background:rgba(37,150,190,.18); font-size:11px!important; }
     .web-result-snippet { max-width:850px; font-size:13px!important; line-height:1.6!important; }
-    .web-result-actions { display:flex; justify-content:flex-end; gap:7px; flex-wrap:wrap; margin-top:11px; }
-    .nova-bookmark-result { margin:0!important; padding:7px 11px!important; border:1px solid rgba(255,255,255,.22)!important; border-radius:9px!important; background:rgba(255,255,255,.10)!important; color:inherit!important; box-shadow:none!important; font-size:12px!important; }
-    .nova-bookmark-result.is-saved { background:rgba(37,150,190,.36)!important; border-color:rgba(145,224,255,.5)!important; }
+    .web-result-actions { position:absolute; top:7px; right:7px; display:block; margin:0; z-index:5; }
+    .nova-result-menu-toggle { display:flex!important; align-items:center; justify-content:center; width:34px!important; min-width:34px!important; height:34px!important; margin:0!important; padding:0!important; border:1px solid var(--ns-border,rgba(255,255,255,.2))!important; border-radius:50%!important; background:var(--ns-hover,rgba(255,255,255,.08))!important; color:var(--ns-text,var(--nova-page-text,#fff))!important; box-shadow:none!important; font:700 20px/1 Arial,sans-serif!important; cursor:pointer; }
+    .nova-result-menu-toggle:hover,.nova-result-menu-toggle[aria-expanded="true"] { background:var(--ns-hover,rgba(255,255,255,.18))!important; border-color:var(--nova-accent,#2596be)!important; transform:none!important; }
+    .nova-result-menu-toggle::after { display:none!important; }
+    .web-result-actions-menu { display:none; position:absolute; top:calc(100% + 5px); right:0; width:166px; padding:5px; border:1px solid var(--ns-border,rgba(255,255,255,.17)); border-radius:11px; background:var(--ns-bg,rgba(7,16,24,.98)); color:var(--ns-text,var(--nova-page-text,#fff)); box-shadow:0 9px 25px var(--ns-shadow,rgba(0,0,0,.3)); }
+    .web-result-actions-menu.show { display:flex; flex-direction:column; gap:2px; }
+    .nova-result-menu-item,.nova-bookmark-result { display:flex!important; align-items:center; justify-content:flex-start; width:100%!important; min-width:0!important; min-height:36px; margin:0!important; padding:8px 10px!important; border:1px solid transparent!important; border-radius:7px!important; background:transparent!important; color:var(--ns-text,var(--nova-page-text,#fff))!important; box-shadow:none!important; font-size:13px!important; font-weight:500!important; text-align:left; cursor:pointer; }
+    .nova-result-menu-item:hover,.nova-bookmark-result:hover { background:var(--ns-hover,rgba(255,255,255,.12))!important; border-color:var(--nova-accent,#2596be)!important; transform:none!important; }
+    .nova-bookmark-result.is-saved { color:var(--nova-accent,#7ed9ff)!important; font-weight:700!important; }
     .nova-feature-toast { position:fixed; left:50%; bottom:20px; z-index:2147483000; transform:translateX(-50%) translateY(12px); max-width:calc(100% - 32px); padding:10px 15px; border:1px solid rgba(255,255,255,.3); border-radius:12px; background:rgba(5,36,52,.94); color:white; box-shadow:0 8px 24px #0004; font:13px system-ui,sans-serif; opacity:0; pointer-events:none; transition:opacity .18s ease,transform .18s ease; }
     .nova-feature-toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
     @media(max-width:600px) {
@@ -607,13 +613,15 @@
     if (!card || !card.classList || !card.classList.contains("web-result")) return;
     const details = resultDetails(card);
     const actions = $(".web-result-actions", card);
-    if (!details || !actions) return;
+    const actionMenu = $(".web-result-actions-menu", actions);
+    if (!details || !actions || !actionMenu) return;
 
-    let button = $(".nova-bookmark-result", actions);
+    let button = $(".nova-bookmark-result", actionMenu);
     if (!button) {
       button = document.createElement("button");
       button.type = "button";
-      button.className = "nova-bookmark-result";
+      button.className = "nova-bookmark-result nova-result-menu-item";
+      button.setAttribute("role", "menuitem");
       button.addEventListener("click", () => {
         const currentDetails = resultDetails(card);
         if (!currentDetails) return;
@@ -637,7 +645,7 @@
         renderBookmarkList();
         refreshResultButtons();
       });
-      actions.appendChild(button);
+      actionMenu.appendChild(button);
     }
     updateResultBookmarkButton(button, details);
   }
