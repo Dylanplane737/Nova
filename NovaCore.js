@@ -87,11 +87,38 @@ async function showSuggestions(input){
 }
 urlInput.addEventListener("keydown", (e)=>{
   const items = suggestionBox.querySelectorAll("div");
-  if (!items.length) return;
-  if (e.key === "ArrowDown"){ e.preventDefault(); highlightedIndex = (highlightedIndex+1)%items.length; updateHighlight(items); }
-  else if (e.key === "ArrowUp"){ e.preventDefault(); highlightedIndex = (highlightedIndex-1+items.length)%items.length; updateHighlight(items); }
-  else if (e.key === "Enter"){ if (highlightedIndex>=0){ e.preventDefault(); urlInput.value = items[highlightedIndex].textContent; suggestionBox.innerHTML=""; suggestionBox.classList.remove("show"); } else { openWebsite(); } }
-  else if (e.key === "Escape"){ suggestionBox.innerHTML=""; suggestionBox.classList.remove("show"); highlightedIndex=-1; }
+
+  if (e.key === "ArrowDown" && items.length) {
+    e.preventDefault();
+    highlightedIndex = (highlightedIndex + 1) % items.length;
+    updateHighlight(items);
+  } else if (e.key === "ArrowUp" && items.length) {
+    e.preventDefault();
+    highlightedIndex = (highlightedIndex - 1 + items.length) % items.length;
+    updateHighlight(items);
+  } else if (e.key === "Enter") {
+    // Enter must submit the search even when autocomplete has no suggestions.
+    // If a suggestion is highlighted, select it first; Enter again runs that search.
+    if (
+      suggestionBox.classList.contains("show") &&
+      highlightedIndex >= 0 &&
+      items[highlightedIndex]
+    ) {
+      e.preventDefault();
+      urlInput.value = items[highlightedIndex].textContent;
+      suggestionBox.innerHTML = "";
+      suggestionBox.classList.remove("show");
+      highlightedIndex = -1;
+      return;
+    }
+
+    e.preventDefault();
+    if (typeof openWebsite === "function") openWebsite();
+  } else if (e.key === "Escape") {
+    suggestionBox.innerHTML = "";
+    suggestionBox.classList.remove("show");
+    highlightedIndex = -1;
+  }
 });
 function updateHighlight(items){ items.forEach((it,i)=> it.classList.toggle("highlighted", i===highlightedIndex)); }
 
