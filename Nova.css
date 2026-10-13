@@ -200,16 +200,19 @@ canvas#matrixCanvas { position:fixed; inset:0; z-index:1200; pointer-events:none
   right: 0;
   width: 190px;
   padding: 6px;
+  box-sizing: border-box;
   border-radius: 10px;
-  background: rgba(7,16,24,0.98);
-  border: 1px solid rgba(255,255,255,0.16);
-  box-shadow: 0 10px 28px rgba(0,0,0,0.35);
+  background: var(--ns-bg, rgba(7,16,24,0.98));
+  color: var(--ns-text, #ffffff);
+  border: 1px solid var(--ns-border, rgba(255,255,255,0.16));
+  box-shadow: 0 10px 28px var(--ns-shadow, rgba(0,0,0,0.35));
   z-index: 2005;
   display: none;
 }
 #novaSettingsDropdown.show { display: block; }
 
 .nova-overflow-item {
+  box-sizing: border-box;
   width: 100% !important;
   min-width: 0 !important;
   height: 38px !important;
@@ -218,16 +221,26 @@ canvas#matrixCanvas { position:fixed; inset:0; z-index:1200; pointer-events:none
   display: flex !important;
   align-items: center;
   gap: 10px;
+  border: 1px solid transparent !important;
   border-radius: 8px !important;
   background: transparent !important;
-  color: white !important;
+  color: var(--ns-text, var(--nova-page-text, #ffffff)) !important;
   box-shadow: none !important;
   font-size: 14px;
   text-align: left;
   transform: none !important;
 }
-.nova-overflow-item:hover { background: rgba(255,255,255,0.12) !important; transform: none !important; }
-.nova-overflow-item.is-active { background: rgba(37,150,190,0.30) !important; }
+.nova-overflow-item:hover {
+  background: var(--ns-hover, rgba(255,255,255,0.12)) !important;
+  border-color: var(--ns-border-strong, var(--nova-accent, #2596be)) !important;
+  color: var(--ns-text, var(--nova-page-text, #ffffff)) !important;
+  transform: none !important;
+}
+.nova-overflow-item.is-active {
+  background: var(--ns-hover, rgba(37,150,190,0.18)) !important;
+  border-color: var(--nova-accent, #2596be) !important;
+  color: var(--ns-text, var(--nova-page-text, #ffffff)) !important;
+}
 
 #novaSettingsPanel {
   position: fixed;
