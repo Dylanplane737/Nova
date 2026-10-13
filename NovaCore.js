@@ -594,9 +594,23 @@ function renderWebResults(results, query, page = 1, hasNext = results.length >= 
     const actions = document.createElement("div");
     actions.className = "web-result-actions";
 
+    const menuToggle = document.createElement("button");
+    menuToggle.type = "button";
+    menuToggle.className = "nova-result-menu-toggle";
+    menuToggle.textContent = "⋮";
+    menuToggle.title = "More result actions";
+    menuToggle.setAttribute("aria-label", "More result actions");
+    menuToggle.setAttribute("aria-haspopup", "menu");
+    menuToggle.setAttribute("aria-expanded", "false");
+
+    const actionMenu = document.createElement("div");
+    actionMenu.className = "web-result-actions-menu";
+    actionMenu.setAttribute("role", "menu");
+
     const cite = document.createElement("button");
     cite.type = "button";
-    cite.className = "nova-cite-button";
+    cite.className = "nova-cite-button nova-result-menu-item";
+    cite.setAttribute("role", "menuitem");
     cite.textContent = "Cite";
     cite.addEventListener("click", () => {
       if (typeof window.NovaResearchOpenCitation === "function") {
@@ -607,7 +621,9 @@ function renderWebResults(results, query, page = 1, hasNext = results.length >= 
         });
       }
     });
-    actions.appendChild(cite);
+
+    actionMenu.appendChild(cite);
+    actions.append(menuToggle, actionMenu);
 
     card.append(header, url, snippet, actions);
     webSearchResults.appendChild(card);
@@ -618,6 +634,45 @@ function renderWebResults(results, query, page = 1, hasNext = results.length >= 
   webSearchResults.setAttribute("data-query", query);
   webSearchResults.setAttribute("data-page", String(page));
 }
+
+function closeWebResultMenus(exceptMenu = null) {
+  document.querySelectorAll(".web-result-actions-menu.show").forEach(menu => {
+    if (menu === exceptMenu) return;
+    menu.classList.remove("show");
+    const toggle = menu.parentElement && menu.parentElement.querySelector(".nova-result-menu-toggle");
+    if (toggle) toggle.setAttribute("aria-expanded", "false");
+  });
+}
+
+document.addEventListener("click", event => {
+  const target = event.target instanceof Element ? event.target : null;
+  if (!target) return;
+
+  const toggle = target.closest(".nova-result-menu-toggle");
+  if (toggle) {
+    const actions = toggle.closest(".web-result-actions");
+    const menu = actions && actions.querySelector(".web-result-actions-menu");
+    if (!menu) return;
+
+    const shouldOpen = !menu.classList.contains("show");
+    closeWebResultMenus(menu);
+    menu.classList.toggle("show", shouldOpen);
+    toggle.setAttribute("aria-expanded", String(shouldOpen));
+    event.preventDefault();
+    return;
+  }
+
+  if (target.closest(".web-result-actions-menu")) {
+    closeWebResultMenus();
+    return;
+  }
+
+  closeWebResultMenus();
+});
+
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape") closeWebResultMenus();
+});
 
 async function loadWebResults(query, page = 1){
   if (!webSearchContainer || !webSearchResults) return;
