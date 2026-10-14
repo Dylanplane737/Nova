@@ -21,14 +21,36 @@ function renderTimelineGraph() {
   if (!events.length) return;
   const maxY = Math.max(...events.map(e => e.year));
   const minY = Math.min(...events.map(e => e.year));
-  const padding = 20;
+  const padding = 24;
   const w = timelineGraphCanvas.width - padding * 2;
   const h = timelineGraphCanvas.height - padding * 2;
+  const yearSpan = Math.max(1, maxY - minY);
+  const point = (ev, i) => ({
+    x: padding + (events.length === 1 ? w / 2 : i * (w / (events.length - 1))),
+    y: padding + h * (1 - (ev.year - minY) / yearSpan)
+  });
+
+  // Connect dates so the graph reads as a chronology instead of isolated dots.
+  if (events.length > 1) {
+    ctx.beginPath();
+    events.forEach((ev, i) => {
+      const p = point(ev, i);
+      if (i === 0) ctx.moveTo(p.x, p.y);
+      else ctx.lineTo(p.x, p.y);
+    });
+    ctx.strokeStyle = "#2596be";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
   events.forEach((ev, i) => {
-    const x = padding + i * (w / events.length);
-    const y = padding + h * (1 - (ev.year - minY) / (maxY - minY));
-    ctx.beginPath(); ctx.arc(x, y, 5, 0, 2 * Math.PI); ctx.fillStyle = "#a8d0e6"; ctx.fill();
-    ctx.font = "10px Arial"; ctx.fillText(ev.year, x + 6, y + 4);
+    const p = point(ev, i);
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 5, 0, 2 * Math.PI);
+    ctx.fillStyle = "#a8d0e6";
+    ctx.fill();
+    ctx.font = "10px Arial";
+    ctx.fillText(String(ev.year), p.x + 7, p.y + 4);
   });
 }
 
