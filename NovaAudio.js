@@ -69,7 +69,12 @@ async function fetchRelatedSearches(query) {
 async function fetchAudioClips(query) {
   const requestId = ++audioRequestId;
   const normalizedQuery = String(query || "").trim();
-  const audioEnabled = localStorage.getItem("novaAudioPreview") === "true";
+  let audioEnabled = false;
+  try {
+    audioEnabled = localStorage.getItem("novaAudioPreview") === "true";
+  } catch (error) {
+    // Storage may be unavailable in restricted browser contexts.
+  }
 
   // Freesound needs authentication. Never put a private API token in public
   // GitHub Pages code; a backend proxy is required to enable this integration.
