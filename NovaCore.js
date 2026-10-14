@@ -832,8 +832,12 @@ async function openWebsite(){
   }
 
   // Record actual searches (not blank submits, Easter eggs, or direct URLs).
-  // Settings can disable history; storage errors must never block a search.
-  if (localStorage.getItem("novaSaveHistory") !== "false") saveToHistory(input);
+  // History is optional; a storage error must never block the search itself.
+  try {
+    if (localStorage.getItem("novaSaveHistory") !== "false") saveToHistory(input);
+  } catch (historyError) {
+    console.warn("Nova could not check the search-history setting:", historyError);
+  }
 
   showSpinner();
   const webResultsEnabled = localStorage.getItem("novaWebResults") !== "false";
@@ -1018,9 +1022,11 @@ function showHistory() {
   const list = document.createElement("div");
   list.style.cssText = "display:flex;flex-direction:column;gap:7px;";
   const entries = stored.slice().reverse();
+  let historyEnabled = true;
+  try { historyEnabled = localStorage.getItem("novaSaveHistory") !== "false"; } catch (error) {}
   if (!entries.length) {
     const empty = document.createElement("p");
-    empty.textContent = localStorage.getItem("novaSaveHistory") === "false"
+    empty.textContent = !historyEnabled
       ? "No saved searches. Turn on “Save search history” in Settings to record future searches."
       : "No searches saved yet. Search for something, then open this panel again with Ctrl+H.";
     list.appendChild(empty);
