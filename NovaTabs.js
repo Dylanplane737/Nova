@@ -1094,6 +1094,8 @@
         "dblclick",
         event => {
 
+          // The close button is not a rename target, even on a rapid double-click.
+          if (event.target instanceof Element && event.target.closest(".nova-tab-close")) return;
           event.stopPropagation();
 
           const name = prompt(
