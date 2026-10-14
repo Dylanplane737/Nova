@@ -338,7 +338,6 @@
   function hideSearchContent() {
     if (webBox) webBox.classList.remove("visible");
     if ($("#resultContainer")) $("#resultContainer").classList.remove("visible");
-    if ($("#dictionaryContainer")) $("#dictionaryContainer").style.display = "none";
     if ($("#timelineContainer")) $("#timelineContainer").style.display = "none";
     if ($("#rickrollContainer")) $("#rickrollContainer").style.display = "none";
     if ($("#loadingSpinner")) $("#loadingSpinner").classList.remove("visible");
