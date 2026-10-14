@@ -1,6 +1,3 @@
-// Placeholder for future easter eggs
-function stopSnow() {}
-
 // State
 let highlightedIndex = -1;
 let debounceTimer;
@@ -43,7 +40,6 @@ function formatURL(input){
   if (input.includes(".")) return "https://" + input;
   return input;
 }
-function safeText(s){ return (s || "").toString(); }
 function escapeHtml(text){
   if (!text) return "";
   return text.replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'})[c]);
@@ -1388,7 +1384,6 @@ document.addEventListener("keydown", function (event) {
         console.warn("Nova Map error:", err);
       }
 
-      stopSnow();
     };
   }
 })();
