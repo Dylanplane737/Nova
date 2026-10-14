@@ -24,8 +24,6 @@ const resultContainer = document.getElementById("resultContainer");
 const imagesSection = document.getElementById("imagesSection");
 const videosSection = document.getElementById("videosSection");
 const wikiSummaryEl = document.getElementById("wikiSummary");
-const dictionaryContainer = document.getElementById("dictionaryContainer");
-const dictionaryResults = document.getElementById("dictionaryResults");
 const timelineContainer = document.getElementById("timelineContainer");
 const timelineList = document.getElementById("timelineList");
 const rickrollContainer = document.getElementById("rickrollContainer");
@@ -160,16 +158,6 @@ async function getCommonsMedia(query, offset=0){
   } catch (err) { console.warn("getCommonsMedia error", err); return { images:[], videos:[] }; }
 }
 
-// --- Dictionary ---
-async function getDictionaryDefinition(word){
-  try {
-    const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`);
-    if (!res.ok) return null;
-    const j = await res.json();
-    return j[0] || null;
-  } catch { return null; }
-}
-
 // --- Video APIs (Moved outside of try/catch to fix scoping bug) ---
 async function fetchPeerTubeVideos(query, limit=5) {
   try {
@@ -199,35 +187,72 @@ async function fetchDailymotionVideos(query, limit=5){
 // --- Timeline extractor ---
 function extractTimelineFromText(text){
   if (!text) return [];
-  const sentences = text.replace(/\r/g," ").split(/(?<=[.?!;])\s+|\n+/);
-  const events = [];
+
+  // Wikipedia lead paragraphs can repeat dates and include awkward line breaks.
+  const normalized = String(text)
+    .replace(/\r/g, " ")
+    .replace(/\u00a0/g, " ")
+    .replace(/[ \t]+/g, " ")
+    .trim();
+  if (!normalized) return [];
+
+  const sentences = normalized.split(/(?<=[.!?;])\s+|\n+/);
   const yearRegex = /\b(1[0-9]{3}|20[0-9]{2})\b/g;
-  for (const s of sentences){
-    const found = [...s.matchAll(yearRegex)];
-    if (found.length){
-      const y = parseInt(found[0][1],10);
-      const clean = s.trim().replace(/[\n\r]+/g," ").replace(/\s{2,}/g," ");
-      events.push({ year: y, text: clean });
-    }
-  }
-  const unique = [];
+  const events = [];
   const seen = new Set();
-  events.sort((a,b)=> a.year - b.year);
-  for (const e of events){
-    const key = `${e.year}||${e.text}`;
-    if (!seen.has(key)) { seen.add(key); unique.push(e); }
+
+  for (const sentence of sentences) {
+    const clean = sentence.replace(/\s+/g, " ").trim();
+    if (!clean) continue;
+
+    const yearMatch = clean.match(yearRegex);
+    if (!yearMatch) continue;
+
+    const year = Number(yearMatch[0]);
+    const description = clean.length > 420 ? clean.slice(0, 417).trimEnd() + "…" : clean;
+    const key = year + "||" + description.toLowerCase().replace(/\s+/g, " ");
+    if (seen.has(key)) continue;
+
+    seen.add(key);
+    events.push({ year, text: description });
   }
-  return unique;
+
+  // Keep the timeline readable and avoid turning long text into an enormous list.
+  events.sort((a, b) => a.year - b.year || a.text.localeCompare(b.text));
+  return events.slice(0, 30);
 }
+
 function renderTimeline(events){
   timelineList.innerHTML = "";
-  if (!events.length){ timelineContainer.style.display = "none"; return; }
-  for (const ev of events){
-    const div = document.createElement("div");
-    div.className = "timeline-item";
-    div.innerHTML = `<span class="timeline-year">${ev.year}</span> <span>${escapeHtml(ev.text)}</span>`;
-    timelineList.appendChild(div);
+  const previousCount = timelineContainer.querySelector(".timeline-count");
+  if (previousCount) previousCount.remove();
+
+  if (!events.length) {
+    timelineContainer.style.display = "none";
+    return;
   }
+
+  const count = document.createElement("p");
+  count.className = "timeline-count";
+  count.textContent = "Chronological highlights · " + events.length + (events.length === 1 ? " dated detail" : " dated details");
+  timelineList.insertAdjacentElement("beforebegin", count);
+
+  for (const ev of events) {
+    const item = document.createElement("article");
+    item.className = "timeline-item";
+
+    const year = document.createElement("span");
+    year.className = "timeline-year";
+    year.textContent = String(ev.year);
+
+    const description = document.createElement("span");
+    description.className = "timeline-description";
+    description.textContent = ev.text;
+
+    item.append(year, description);
+    timelineList.appendChild(item);
+  }
+
   timelineContainer.style.display = "block";
 }
 
@@ -791,7 +816,6 @@ async function openWebsite(){
     webSearchResults.innerHTML = "";
     webSearchResults.removeAttribute("data-query");
   }
-  dictionaryContainer.style.display = "none";
   timelineContainer.style.display = "none";
   rickrollContainer.style.display = "none";
   imagesSection.innerHTML = ""; videosSection.innerHTML = ""; imagesList = []; currentLightIndex = -1;
@@ -806,6 +830,10 @@ async function openWebsite(){
     window.open(formatURL(input), "_blank");
     return;
   }
+
+  // Record actual searches (not blank submits, Easter eggs, or direct URLs).
+  // Settings can disable history; storage errors must never block a search.
+  if (localStorage.getItem("novaSaveHistory") !== "false") saveToHistory(input);
 
   showSpinner();
   const webResultsEnabled = localStorage.getItem("novaWebResults") !== "false";
@@ -837,7 +865,6 @@ async function openWebsite(){
     if (!summary) {
       // Web results can still make this a useful search even without Wikipedia.
       resultContainer.classList.remove("visible");
-      dictionaryContainer.style.display = "none";
       timelineContainer.style.display = "none";
       hideSpinner();
       return;
@@ -879,23 +906,6 @@ async function openWebsite(){
     }
 
     resultContainer.classList.add("visible");
-
-    // 4) Dictionary
-    try {
-      const dict = await getDictionaryDefinition(input);
-      dictionaryResults.innerHTML = "";
-      if (!dict) dictionaryResults.innerHTML = `<p class="errorMsg">No dictionary definition found.</p>`;
-      else {
-        if (dict.phonetics && dict.phonetics.length) dictionaryResults.innerHTML += `<p class="phonetics">Pronunciation: ${escapeHtml(dict.phonetics[0].text||"")}</p>`;
-        dict.meanings.forEach(m=>{
-          dictionaryResults.innerHTML += `<h4 style="margin-bottom:6px">${escapeHtml(m.partOfSpeech)}</h4>`;
-          m.definitions.forEach((d,i)=>{
-            dictionaryResults.innerHTML += `<div class="definition"><strong>${i+1}.</strong> ${escapeHtml(d.definition)}${d.example?`<br><em>Example: ${escapeHtml(d.example)}</em>`:''}</div>`;
-          });
-        });
-      }
-      dictionaryContainer.style.display = "block";
-    } catch (err){ console.warn("dictionary error", err); dictionaryResults.innerHTML = `<p class="errorMsg">Dictionary lookup error.</p>`; dictionaryContainer.style.display="block"; }
 
     // 5) Timeline
     try {
@@ -950,28 +960,116 @@ document.addEventListener("click", (e)=>{
 urlInput.focus();
 
 // ================== HISTORY & SHORTCUTS ==================
-function saveToHistory(url) {
-    let history = JSON.parse(localStorage.getItem("nova_history")) || [];
-    history.push({ url: url, time: new Date().toLocaleString() });
-    localStorage.setItem("nova_history", JSON.stringify(history));
+function saveToHistory(query) {
+  const value = String(query || "").trim();
+  if (!value || localStorage.getItem("novaSaveHistory") === "false") return;
+
+  try {
+    const stored = JSON.parse(localStorage.getItem("nova_history") || "[]");
+    const history = Array.isArray(stored) ? stored : [];
+    const normalized = value.toLowerCase();
+
+    // Keep only the latest occurrence of each query and cap storage growth.
+    const recent = history.filter(entry =>
+      String(entry && (entry.url || entry.query) || "").trim().toLowerCase() !== normalized
+    );
+    recent.push({ url: value, time: new Date().toLocaleString(), timestamp: Date.now() });
+    localStorage.setItem("nova_history", JSON.stringify(recent.slice(-100)));
+  } catch (error) {
+    console.warn("Nova could not save search history:", error);
+  }
 }
 
 function showHistory() {
-    let history = JSON.parse(localStorage.getItem("nova_history")) || [];
-    let popup = document.createElement("div");
-    popup.id = "novaHistoryPopup";
-    popup.style.cssText = "position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:60%;height:60%;background:#111;color:white;border:2px solid #555;padding:20px;overflowY:auto;z-index:10000;fontFamily:monospace;";
-    let html = "<h2>Your History</h2><hr>";
-    history.forEach(entry => { html += `<p><b>${entry.time}</b> — ${entry.url}</p>`; });
-    html += `<button id='closeNovaHistory' style='margin-top:15px;padding:8px;'>Close</button>`;
-    popup.innerHTML = html;
-    document.body.appendChild(popup);
-    document.getElementById("closeNovaHistory").onclick = () => popup.remove();
+  if (document.getElementById("novaHistoryPopup")) return;
+
+  let stored = [];
+  try {
+    const parsed = JSON.parse(localStorage.getItem("nova_history") || "[]");
+    if (Array.isArray(parsed)) stored = parsed;
+  } catch (error) {
+    console.warn("Nova could not read search history:", error);
+  }
+
+  const popup = document.createElement("div");
+  popup.id = "novaHistoryPopup";
+  popup.setAttribute("role", "presentation");
+  popup.style.cssText = "position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;background:rgba(0,0,0,.58);z-index:10000;";
+
+  const panel = document.createElement("section");
+  panel.setAttribute("role", "dialog");
+  panel.setAttribute("aria-modal", "true");
+  panel.setAttribute("aria-label", "Search history");
+  panel.style.cssText = "width:100%;max-width:680px;max-height:82vh;overflow:auto;box-sizing:border-box;background:var(--ns-bg,#101820);color:var(--ns-text,#fff);border:1px solid var(--ns-border,rgba(255,255,255,.28));border-radius:16px;padding:20px;box-shadow:0 18px 60px rgba(0,0,0,.4);font-family:system-ui,sans-serif;text-align:left;";
+
+  const header = document.createElement("div");
+  header.style.cssText = "display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;";
+  const heading = document.createElement("h2");
+  heading.textContent = "Search History";
+  heading.style.cssText = "margin:0;font-size:22px;";
+  const close = document.createElement("button");
+  close.id = "closeNovaHistory";
+  close.type = "button";
+  close.textContent = "×";
+  close.setAttribute("aria-label", "Close search history");
+  close.style.cssText = "margin:0;padding:4px 11px;border-radius:8px;font-size:22px;";
+  header.append(heading, close);
+
+  const list = document.createElement("div");
+  list.style.cssText = "display:flex;flex-direction:column;gap:7px;";
+  const entries = stored.slice().reverse();
+  if (!entries.length) {
+    const empty = document.createElement("p");
+    empty.textContent = localStorage.getItem("novaSaveHistory") === "false"
+      ? "No saved searches. Turn on “Save search history” in Settings to record future searches."
+      : "No searches saved yet. Search for something, then open this panel again with Ctrl+H.";
+    list.appendChild(empty);
+  } else {
+    entries.forEach(entry => {
+      const query = String(entry && (entry.url || entry.query) || "").trim();
+      if (!query) return;
+      const row = document.createElement("button");
+      row.type = "button";
+      row.style.cssText = "display:flex;flex-direction:column;align-items:flex-start;gap:4px;width:100%;padding:11px 13px;margin:0;border:1px solid var(--ns-border,rgba(255,255,255,.2));border-radius:9px;background:rgba(255,255,255,.06);color:inherit;text-align:left;white-space:normal;overflow-wrap:anywhere;";
+      const queryLabel = document.createElement("strong");
+      queryLabel.textContent = query;
+      const timeLabel = document.createElement("span");
+      timeLabel.textContent = String(entry.time || (entry.timestamp ? new Date(entry.timestamp).toLocaleString() : ""));
+      timeLabel.style.cssText = "font-size:11px;opacity:.72;";
+      row.append(queryLabel, timeLabel);
+      row.addEventListener("click", () => {
+        urlInput.value = query;
+        closePopup();
+        if (typeof openWebsite === "function") openWebsite();
+      });
+      list.appendChild(row);
+    });
+  }
+
+  panel.append(header, list);
+  popup.appendChild(panel);
+  document.body.appendChild(popup);
+
+  function closePopup() {
+    popup.remove();
+    document.removeEventListener("keydown", handleHistoryKey);
+  }
+  function handleHistoryKey(event) {
+    if (event.key === "Escape") closePopup();
+  }
+  close.addEventListener("click", closePopup);
+  popup.addEventListener("click", event => {
+    if (event.target === popup) closePopup();
+  });
+  document.addEventListener("keydown", handleHistoryKey);
 }
 
-document.addEventListener("keydown", function (e) {
-    if (e.ctrlKey && e.key.toLowerCase() === "h") { e.preventDefault(); showHistory(); }
-    if (e.ctrlKey && e.key.toLowerCase() === "r") { e.preventDefault(); localStorage.clear(); alert("Nova settings have been reset!"); }
+document.addEventListener("keydown", function (event) {
+  if (event.ctrlKey && event.key.toLowerCase() === "h") {
+    event.preventDefault();
+    showHistory();
+  }
+  // Keep Ctrl+R available for the browser; it must not wipe Nova's settings or history.
 });
 
 // ================== MAP SYSTEM ==================
