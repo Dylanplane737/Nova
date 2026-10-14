@@ -134,20 +134,15 @@ button:focus-visible {
 .media-section img:hover, .media-section video:hover { transform:scale(1.06); }
 
 /* =========================================================
-   Dictionary
-   ========================================================= */
-#dictionaryContainer { margin:16px auto; width:520px; background:rgba(0,0,0,0.35); border-radius:12px; padding:14px; color:white; text-align:left; display:none; max-height:320px; overflow:auto; }
-.phonetics { font-style:italic; color:#cfeffb; margin-bottom:8px; }
-.definition { margin-bottom:12px; }
-
-/* =========================================================
    Timeline
    ========================================================= */
 #timelineContainer { margin-top:18px; max-width:900px; margin-left:auto; margin-right:auto; text-align:left; background:rgba(0,0,0,0.18); padding:12px; border-radius:10px; display:none; }
 
+.timeline-count { margin:0 0 10px; color:rgba(255,255,255,.72); font:12px/1.5 system-ui,sans-serif; }
 .timeline-list { display:flex; flex-direction:column; gap:8px; }
-.timeline-item { background:rgba(255,255,255,0.03); padding:10px; border-radius:8px; }
-.timeline-year { font-weight:700; color:#a8d0e6; margin-right:8px; }
+.timeline-item { display:flex; align-items:flex-start; gap:10px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,.08); padding:11px 12px; border-radius:8px; line-height:1.5; }
+.timeline-year { flex:0 0 54px; font-weight:700; color:#a8d0e6; font-variant-numeric:tabular-nums; }
+.timeline-description { min-width:0; }
 
 /* =========================================================
    Spinner
