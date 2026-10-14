@@ -1,6 +1,6 @@
 # Nova – Smart Web Launcher
 
-A fun little web app I made. Search the web, explore topics, find images and videos, save useful sites, and maybe even get rickrolled. 😎
+A fun little web app I made. Search the web, explore topics, find images and videos, save useful sites, and maybe even get rickrolled.
 
 ---
 
