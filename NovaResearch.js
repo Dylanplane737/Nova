@@ -2,7 +2,7 @@
 (() => {
 "use strict";
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
-const input=$("#urlInput"),web=$("#webSearchContainer"),webResults=$("#webSearchResults"),legacy=$("#resultContainer"),dict=$("#dictionaryContainer"),timeline=$("#timelineContainer");
+const input=$("#urlInput"),web=$("#webSearchContainer"),webResults=$("#webSearchResults"),legacy=$("#resultContainer"),timeline=$("#timelineContainer");
 if(!input||!web||!webResults)return;
 const citeKey="novaResearchCitations",prefsKey="novaResearchPreferences",modes=["web","research","images","videos","academic","tools"];
 let mode="web",requestId=0;
@@ -95,17 +95,17 @@ function setMode(next,options={}){if(!modes.includes(next))next="web";mode=next;
 $$(".nova-mode-button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.mode===mode)));
 const normal=mode==="web"||mode==="research";web.style.display=normal?"":"none";extra.style.display=normal?"none":"block";controls.style.display=mode==="research"?"block":"none";
 const views={images:"novaResearchImagesView",videos:"novaResearchVideosView",academic:"novaResearchAcademicView",tools:"novaResearchToolsView"};Object.entries(views).forEach(([k,id])=>$("#"+id).style.display=k===mode?"block":"none");
-if(legacy)legacy.style.display=mode==="web"?"":"none";if(mode!=="web"){if(dict)dict.style.display="none";if(timeline)timeline.style.display="none";const r=$("#rickrollContainer");if(r)r.style.display="none";}
+if(legacy)legacy.style.display=mode==="web"?"":"none";if(mode!=="web"){if(timeline)timeline.style.display="none";const r=$("#rickrollContainer");if(r)r.style.display="none";}
 if(mode==="tools")renderShelf();if(options.runSearch===false&&input.value.trim()&&["images","videos","academic"].includes(mode)){const id={images:"novaResearchImagesStatus",videos:"novaResearchVideosStatus",academic:"novaResearchAcademicStatus"}[mode];if(/searching|loading/i.test($("#"+id).textContent))queueMicrotask(()=>runSearch(mode));}}
 window.NovaResearchState={getActiveMode:()=>mode};window.NovaResearchSetMode=(m,o)=>setMode(m,o||{});
 
 function tabId(){return window.NovaTabsState&&window.NovaTabsState.getActiveTabId?window.NovaTabsState.getActiveTabId():null;}
 function isCurrent(m,q,t,id){return t===requestId&&mode===m&&input.value.trim()===q&&(id===null||tabId()===id);}
-function hideOld(){web.style.display="none";if(legacy)legacy.style.display="none";if(dict)dict.style.display="none";if(timeline)timeline.style.display="none";const r=$("#rickrollContainer");if(r)r.style.display="none";}
+function hideOld(){web.style.display="none";if(legacy)legacy.style.display="none";if(timeline)timeline.style.display="none";const r=$("#rickrollContainer");if(r)r.style.display="none";}
 function updateVideoSearchLinks(query){const youtube=$("#novaYouTubeSearchLink"),bing=$("#novaBingVideoSearchLink");const q=String(query||"").trim();if(youtube)youtube.href=q?"https://www.youtube.com/results?search_query="+encodeURIComponent(q):"https://www.youtube.com/";if(bing)bing.href=q?"https://www.bing.com/videos/search?q="+encodeURIComponent(q):"https://www.bing.com/videos";}
 async function runSearch(which){setMode(which);const q=input.value.trim();if(which==="tools"){renderShelf();return;}if(which==="videos")updateVideoSearchLinks(q);
 if(!q){const ids={images:"novaResearchImagesStatus",videos:"novaResearchVideosStatus",academic:"novaResearchAcademicStatus"};if(ids[which])$("#"+ids[which]).textContent="Enter a topic in Nova's search box, then choose "+which+".";return;}
-if(which==="web"||which==="research"){hideOld();web.style.display="";if(window.openWebsite){await window.openWebsite();if(mode==="research"&&input.value.trim()===q){if(legacy)legacy.style.display="none";if(dict)dict.style.display="none";if(timeline)timeline.style.display="none";}}return;}
+if(which==="web"||which==="research"){hideOld();web.style.display="";if(window.openWebsite){await window.openWebsite();if(mode==="research"&&input.value.trim()===q){if(legacy)legacy.style.display="none";if(timeline)timeline.style.display="none";}}return;}
 hideOld();extra.style.display="block";const t=++requestId,id=tabId();
 if(which==="images"){ $("#novaResearchImagesStatus").textContent="Searching Wikimedia Commons…";$("#novaResearchImagesResults").innerHTML="";try{const d=await searchImages(q,1);if(isCurrent(which,q,t,id))renderImages(d.items,1,d.hasNext,q);}catch(e){if(isCurrent(which,q,t,id))$("#novaResearchImagesStatus").textContent="Image search failed. Try again or check your connection.";console.warn(e);}}
 if(which==="videos"){ $("#novaResearchVideosStatus").textContent="Searching video services…";$("#novaResearchVideosResults").innerHTML="";try{const d=await searchVideos(q,1);if(isCurrent(which,q,t,id))renderVideos(d.items,1,d.hasNext,q);}catch(e){if(isCurrent(which,q,t,id))$("#novaResearchVideosStatus").textContent="Video search failed. Try again or check your connection.";console.warn(e);}}
