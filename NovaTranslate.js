@@ -1,6 +1,4 @@
 (function () {
-  // create helper
-  const $ = (sel, root = document) => root.querySelector(sel);
   const create = (tag, attrs = {}, children = []) => {
     const el = document.createElement(tag);
     Object.entries(attrs).forEach(([k, v]) => {
@@ -95,21 +93,8 @@
     });
   }
 
-  // expose globally for testing
+  // Expose the renderer for explicit integration with Nova's current UI.
   window.createNovaTranslateUI = createNovaTranslateUI;
 
-})();
-// Register the Nova Translate app
-(function registerTranslate() {
-  if (window.NovaApps && typeof window.NovaApps.registerApp === 'function') {
-    window.NovaApps.registerApp({
-      id: 'nova-translate',
-      title: 'Translate',
-      iconHTML: '🌐',  // globe emoji
-      render: createNovaTranslateUI
-    });
-  } else {
-    setTimeout(registerTranslate, 120);
-  }
 })();
 
