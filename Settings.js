@@ -966,15 +966,35 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
     }
     syncBg();
 
+    // Analyze each uploaded wallpaper once; stale results cannot overwrite a newer selection.
     bgFile.addEventListener("change", function (event) {
       const file = event.target.files && event.target.files[0];
       if (!file) return;
+
       const reader = new FileReader();
-      reader.onload = function () {
-        s.background = String(reader.result || "");
+      reader.onload = async function () {
+        const data = String(reader.result || "");
+        const signature = wallpaperSignature(data);
+        s.background = data;
+        s.wallpaperAccent = "";
+        s.wallpaperLuminance = null;
+        s.wallpaperSignature = signature;
+
+        try {
+          const meta = await analyzeWallpaper(data);
+          if (s.background !== data) return;
+          s.wallpaperAccent = meta.accent;
+          s.wallpaperLuminance = meta.luminance;
+        } catch (error) {
+          // Keep the wallpaper even if color analysis fails; use the selected accent.
+          console.warn("Nova wallpaper color analysis failed:", error);
+        }
+
+        if (s.background !== data) return;
         applySettings(s);
         saveSettings(s);
         syncBg();
+        syncAdaptiveControls();
         msg("Background updated");
       };
       reader.readAsDataURL(file);
@@ -982,29 +1002,15 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
 
     clearBg.addEventListener("click", function () {
       s.background = "";
+      s.dynamicAccent = false;
+      s.wallpaperAccent = "";
+      s.wallpaperLuminance = null;
+      s.wallpaperSignature = "";
       applySettings(s);
       saveSettings(s);
       syncBg();
-      msg("Background removed");
-    });
-
-    bgFile.addEventListener("change",function(event){
-      const file=event.target.files&&event.target.files[0];
-      if(!file)return;
-      const reader=new FileReader();
-      reader.onload=function(){
-        const data=String(reader.result||"");
-        analyzeWallpaper(data).then(function(meta){
-          s.wallpaperAccent=meta.accent;
-          s.wallpaperLuminance=meta.luminance;
-          s.wallpaperSignature=wallpaperSignature(data);
-          saveSettings(s);
-          applySettings(s);
-          syncAdaptiveControls();
-          msg("Wallpaper colors matched");
-        }).catch(function(){});
-      };
-      reader.readAsDataURL(file);
+      syncAdaptiveControls();
+      msg("Background removed — wallpaper accent turned off");
     });
 
     /* --- storage meter --- */
