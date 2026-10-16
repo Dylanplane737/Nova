@@ -45,7 +45,7 @@ You can try opening `index.html` in your browser. Some online requests may not w
 
 Settings, bookmarks, search history, and saved citations are stored in your browser on your device. They are not automatically synced between browsers or devices. Export a backup from Settings if you need to move or keep a copy of your data.
 
-Nova still sends searches to the online services needed to provide its search results and other features.
+Nova sends search queries to DuckDuckGo. To load web results in browsers, requests may pass through the public CORS.dev proxy; if that fails, Nova may try Jina Reader. These services can receive the query and requested search URL. Avoid entering sensitive information into web searches.
 
 ---
 
