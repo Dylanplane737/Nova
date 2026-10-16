@@ -457,6 +457,56 @@ function getWebSearchBucket(query){
   return value;
 }
 
+const NOVA_WEB_FETCH_TIMEOUT_MS = 10000;
+
+async function fetchWebSearchText(url, headers, stage) {
+  const controller = typeof AbortController === "function" ? new AbortController() : null;
+  let timeoutId = null;
+  let timedOut = false;
+
+  const options = { headers: headers || {} };
+  if (controller) options.signal = controller.signal;
+
+  const request = (async () => {
+    const response = await fetch(url, options);
+    if (!response.ok) {
+      const statusText = response.statusText ? " " + response.statusText : "";
+      const error = new Error("HTTP " + response.status + statusText);
+      error.status = response.status;
+      error.stage = stage;
+      throw error;
+    }
+    return await response.text();
+  })();
+
+  const timeout = new Promise((resolve, reject) => {
+    timeoutId = setTimeout(() => {
+      timedOut = true;
+      if (controller) controller.abort();
+      const error = new Error("Timed out after " + (NOVA_WEB_FETCH_TIMEOUT_MS / 1000) + " seconds");
+      error.code = "NOVA_WEB_TIMEOUT";
+      error.stage = stage;
+      reject(error);
+    }, NOVA_WEB_FETCH_TIMEOUT_MS);
+  });
+
+  try {
+    return await Promise.race([request, timeout]);
+  } catch (error) {
+    const reason = error && error.message ? error.message : String(error);
+    if (error && !error.stage) error.stage = stage;
+    console.warn("[Nova web search] " + stage + " failed:", {
+      message: reason,
+      status: error && error.status ? error.status : null,
+      code: error && error.code ? error.code : null,
+      timedOut: timedOut
+    });
+    throw error;
+  } finally {
+    if (timeoutId !== null) clearTimeout(timeoutId);
+  }
+}
+
 async function searchWebBatch(query, batchIndex){
   const bucket = getWebSearchBucket(query);
   if (bucket.batches.has(batchIndex)) return bucket.batches.get(batchIndex);
@@ -475,31 +525,31 @@ async function searchWebBatch(query, batchIndex){
   let results = [];
 
   try {
-    const response = await fetch(readerUrl, {
-      headers: { "Accept": "text/plain", "X-Respond-With": "html" }
-    });
-    if (!response.ok) throw new Error("Web search gateway returned " + response.status);
-    body = await response.text();
+    body = await fetchWebSearchText(
+      readerUrl,
+      { "Accept": "text/plain", "X-Respond-With": "html" },
+      "HTML response"
+    );
     results = parseWebSearchHTML(body);
     if (!results.length) results = parseWebSearchResults(body, WEB_PROVIDER_PAGE_SIZE);
 
     // Retry in Markdown mode if the HTML response could not be parsed.
     if (!results.length) {
-      const markdownResponse = await fetch(readerUrl, {
-        headers: { "Accept": "text/plain" }
-      });
-      if (!markdownResponse.ok) throw new Error("Web search gateway returned " + markdownResponse.status);
-      body = await markdownResponse.text();
+      body = await fetchWebSearchText(
+        readerUrl,
+        { "Accept": "text/plain" },
+        "Markdown retry"
+      );
       results = parseWebSearchResults(body, WEB_PROVIDER_PAGE_SIZE);
     }
   } catch (error) {
     console.warn("Nova web search HTML fetch failed; trying Markdown:", error);
     try {
-      const fallback = await fetch(readerUrl, {
-        headers: { "Accept": "text/plain" }
-      });
-      if (!fallback.ok) throw new Error("Web search gateway returned " + fallback.status);
-      body = await fallback.text();
+      body = await fetchWebSearchText(
+        readerUrl,
+        { "Accept": "text/plain" },
+        "Markdown fallback"
+      );
       results = parseWebSearchResults(body, WEB_PROVIDER_PAGE_SIZE);
     } catch (fallbackError) {
       console.warn("Nova web search failed:", fallbackError);
@@ -531,7 +581,13 @@ async function searchWeb(query, page = 1){
     return { results, failed: false, hasNext };
   } catch (err) {
     console.warn("Nova web search failed:", err);
-    return { results: [], failed: true, hasNext: false };
+    return {
+      results: [],
+      failed: true,
+      hasNext: false,
+      error: (err && err.stage ? err.stage + ": " : "") +
+        (err && err.message ? err.message : "Unknown request error")
+    };
   }
 }
 
@@ -779,10 +835,22 @@ async function loadWebResults(query, page = 1){
 
     const fallbackName = search.failed ? "Google Search" : "DuckDuckGo";
 
-    webSearchResults.innerHTML =
-      '<p>No web results loaded. <a href="' + fallbackUrl +
-      '" target="_blank" rel="noopener noreferrer" style="color:#bfeaff">' +
-      'Open ' + fallbackName + '</a></p>';
+    webSearchResults.innerHTML = "";
+    const failureMessage = document.createElement("p");
+    failureMessage.className = "nova-empty-results";
+    failureMessage.appendChild(document.createTextNode(
+      "No web results loaded." +
+      (search.error ? " Request error: " + search.error + "." : "")
+    ));
+    failureMessage.appendChild(document.createTextNode(" "));
+    const fallbackLink = document.createElement("a");
+    fallbackLink.href = fallbackUrl;
+    fallbackLink.target = "_blank";
+    fallbackLink.rel = "noopener noreferrer";
+    fallbackLink.style.color = "#bfeaff";
+    fallbackLink.textContent = "Open " + fallbackName;
+    failureMessage.appendChild(fallbackLink);
+    webSearchResults.appendChild(failureMessage);
     webSearchContainer.classList.add("visible");
     webSearchResults.setAttribute("data-query", query);
     webSearchResults.setAttribute("data-page", String(safePage));
