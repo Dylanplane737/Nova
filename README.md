@@ -25,8 +25,10 @@ No download needed — Nova runs online through GitHub Pages.
 - **Home and bookmarks** for shortcuts and saved websites.
 - **Customizable appearance** with themes, accent colors, font sizing, and custom backgrounds.
 - **Search history and backups**, managed from Settings.
-- **Easter eggs**, including the Rickroll, Matrix, Flip, Portal-inspired cake joke, 42 reference, fake terminal warning, random greetings, and Konami-code achievement.
+- **Easter eggs**, including the Rickroll, Matrix, Flip, Portal-inspired cake joke, 42 reference, fake command warning, random greetings, and Konami-code achievement.
 - **Offline play:** Nova Dash is a locally rendered mini-game. After Nova has been opened online and its app shell cached, Nova can reopen with a connection notice and the game when the device is offline.
+
+Try typing exact phrases in Nova's search box: `the cake is a lie`, `42`, `hello world`, `sudo rm -rf /`, `easter egg`, or `nova dash`. Type `konami` for the hint, then enter ↑ ↑ ↓ ↓ ← → ← → B A, followed by Enter. Existing triggers include `rickroll`, `matrix`, and `flip`.
 
 Nova uses third-party online services for search, summaries, media, maps, and academic records. Those services need an internet connection and may occasionally be unavailable. The first visit still needs internet so the app can load and cache itself; offline search results are not available.
 
