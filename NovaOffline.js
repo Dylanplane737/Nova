@@ -195,14 +195,13 @@
     );
   }
 
-  function showConnectionPanel(reason) {
+  function showConnectionPanel() {
     if (modalKind === "game" || modalKind === "offline") return;
-    const detail = String(reason || "").trim();
     const message = "Nova couldn't load web results. Your connection may be offline, or a search provider may be temporarily unavailable. You can still play Nova Dash.";
     renderPanel(
       "Can't reach web search",
       "📡",
-      detail ? message + " Details: " + detail : message,
+      message,
       "connection",
       [
         { label: "Play Nova Dash", action: openGame, primary: true },
@@ -214,7 +213,7 @@
   function reportSearchFailure(reason) {
     const text = String(reason || "");
     if (navigator.onLine === false || /failed to fetch|networkerror|load failed|internet disconnected|network is unreachable/i.test(text)) {
-      showConnectionPanel(text);
+      showConnectionPanel();
     }
   }
 
@@ -485,7 +484,7 @@
   window.addEventListener("offline", showOfflinePanel);
   window.addEventListener("online", () => {
     if (modalKind === "offline" || modalKind === "connection") closePanel();
-    showToast("Connection restored. Nova's web search is available again.");
+    showToast("Connection restored. You can try Nova's web search again.");
   });
 
   window.NovaOffline = {
