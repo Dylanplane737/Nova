@@ -23,7 +23,8 @@ No download needed — Nova runs online through GitHub Pages.
 - **Academic search** for scholarly publication records.
 - **Citation tools** for creating MLA citations, saving them locally, and exporting a Works Cited list.
 - **Home and bookmarks** for shortcuts and saved websites.
-- **Customizable appearance** with themes, accent colors, font sizing, and custom backgrounds.
+- **Customizable appearance** with themes, accent colors, font sizing, custom backgrounds, and **Nova Lite Mode** to disable blur, shadows, and heavy visual effects on lower-spec devices.
+- **Connection Test** to check the browser connection signal, Wikipedia API reachability, and the Tiago and cl0q search providers, with clear results when browser security prevents verification.
 - **Search history and backups**, managed from Settings.
 - **Easter eggs**, including the Rickroll, Matrix, Flip, Portal-inspired cake joke, 42 reference, fake command warning, random greetings, and Konami-code achievement.
 - **Offline play:** Nova Dash is a locally rendered mini-game. After Nova has been opened online and its app shell cached, Nova can reopen with a connection notice and the game when the device is offline.

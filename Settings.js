@@ -28,7 +28,8 @@
     tactileFeedback: "novaTactileFeedback",
     wallpaperAccent: "novaWallpaperAccent",
     wallpaperLuminance: "novaWallpaperLuminance",
-    wallpaperSignature: "novaWallpaperSignature"
+    wallpaperSignature: "novaWallpaperSignature",
+    liteMode: "novaLiteMode"
   };
 
   const DEFAULTS = {
@@ -53,7 +54,8 @@
     tactileFeedback: true,
     wallpaperAccent: "",
     wallpaperLuminance: null,
-    wallpaperSignature: ""
+    wallpaperSignature: "",
+    liteMode: false
   };
 
   const THEMES = {
@@ -235,7 +237,8 @@
       tactileFeedback: bool(STORAGE.tactileFeedback, DEFAULTS.tactileFeedback),
       wallpaperAccent: localStorage.getItem(STORAGE.wallpaperAccent) || "",
       wallpaperLuminance: Number.isFinite(Number(localStorage.getItem(STORAGE.wallpaperLuminance))) ? Number(localStorage.getItem(STORAGE.wallpaperLuminance)) : null,
-      wallpaperSignature: localStorage.getItem(STORAGE.wallpaperSignature) || ""
+      wallpaperSignature: localStorage.getItem(STORAGE.wallpaperSignature) || "",
+      liteMode: bool(STORAGE.liteMode, DEFAULTS.liteMode)
     };
   }
 
@@ -263,6 +266,7 @@
     if(s.wallpaperAccent)localStorage.setItem(STORAGE.wallpaperAccent,s.wallpaperAccent);else localStorage.removeItem(STORAGE.wallpaperAccent);
     if(Number.isFinite(s.wallpaperLuminance))localStorage.setItem(STORAGE.wallpaperLuminance,String(s.wallpaperLuminance));else localStorage.removeItem(STORAGE.wallpaperLuminance);
     if(s.wallpaperSignature)localStorage.setItem(STORAGE.wallpaperSignature,s.wallpaperSignature);else localStorage.removeItem(STORAGE.wallpaperSignature);
+    localStorage.setItem(STORAGE.liteMode, String(!!s.liteMode));
   }
 
   /* ---------- injected design system ---------- */
@@ -473,6 +477,22 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
     document.head.appendChild(style);
   }
 
+  function installLiteModeStyles() {
+    if (document.getElementById("nova-lite-mode-styles")) return;
+    const style = document.createElement("style");
+    style.id = "nova-lite-mode-styles";
+    style.textContent = [
+      "html.nova-lite-mode *,html.nova-lite-mode *::before,html.nova-lite-mode *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;box-shadow:none!important;text-shadow:none!important}",
+      "html.nova-lite-mode body{background-attachment:scroll!important}",
+      "html.nova-lite-mode #novaSettingsBackdrop{background:rgba(6,20,34,.76)!important}",
+      "html.nova-lite-mode .ns-footer{background:var(--ns-bg,#fff)!important}",
+      "html.nova-lite-mode #novaOfflineOverlay{background:rgba(3,15,26,.96)!important}",
+      "html.nova-lite-mode .nova-offline-card{background:#092638!important}",
+      "html.nova-lite-mode .nova-connection-overlay{background:rgba(3,15,26,.96)!important}"
+    ].join(" ");
+    document.head.appendChild(style);
+  }
+
   /* ---------- tactile feedback ---------- */
   function tactileSound(kind){
     try{
@@ -526,6 +546,7 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
   /* ---------- apply settings ---------- */
   function applySettings(s) {
     installStyles();
+    installLiteModeStyles();
 
     const theme = THEMES[s.theme] || THEMES.classic;
     const pal = PANEL[s.theme] || PANEL.classic;
@@ -578,6 +599,7 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
     }
 
     document.documentElement.classList.toggle("nova-no-motion", !s.animations);
+    document.documentElement.classList.toggle("nova-lite-mode", !!s.liteMode);
     document.documentElement.classList.toggle("nova-compact", !!s.compact);
     document.documentElement.classList.toggle("nova-high-contrast", !!s.highContrast);
     document.documentElement.classList.toggle("nova-no-tabs", !s.showTabs);
@@ -650,7 +672,7 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
 
         ["audioPreview","animations","compact","highContrast","suggestions","webResults",
          "autoFocus","openLinksNewTab","saveHistory","restoreSearch","smoothScroll","showTabs",
-         "smartUI","dynamicAccent","tactileFeedback"
+         "smartUI","dynamicAccent","tactileFeedback","liteMode"
         ].forEach(function (key) {
           if (typeof incoming[key] === "boolean") localStorage.setItem(STORAGE[key], String(incoming[key]));
         });
@@ -748,6 +770,7 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
       ${rowHTML("ns-compact", "Compact mode", "Tighter spacing and smaller media")}
       ${rowHTML("ns-motion", "Animations & effects", "Transitions across the interface")}
       ${rowHTML("ns-contrast", "High contrast", "Bolder borders for readability")}
+      ${rowHTML("ns-lite-mode", "Nova Lite Mode", "Remove blur and heavy visual effects for faster performance")}
     </div>
 
     <div class="ns-section-title">${I.search} Search &amp; behavior</div>
@@ -760,6 +783,12 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
       ${rowHTML("ns-history", "Save search history", "Keep a local list of searches")}
       ${rowHTML("ns-smooth", "Smooth scrolling", "Animated page scrolling")}
       ${rowHTML("ns-tabs", "Show tab bar", "Display the Nova tab strip")}
+    </div>
+
+    <div class="ns-section-title">${I.shield} Troubleshooting</div>
+    <div class="ns-group" style="padding:12px 14px">
+      <p class="ns-note">Check the browser connection signal and the search services Nova relies on. The test uses a generic query, not your current search.</p>
+      <button type="button" class="ns-btn primary block" id="ns-connection-test">Run Connection Test</button>
     </div>
 
     <div class="ns-section-title">${I.shield} Data &amp; privacy</div>
@@ -923,6 +952,7 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
     toggle("#ns-compact", "compact", function () { applySettings(s); });
     toggle("#ns-motion", "animations", function () { applySettings(s); });
     toggle("#ns-contrast", "highContrast", function () { applySettings(s); });
+    toggle("#ns-lite-mode", "liteMode", function () { applySettings(s); });
     toggle("#ns-suggestions", "suggestions");
     toggle("#ns-web-results", "webResults", function () {
       const box = document.getElementById("webSearchContainer");
@@ -1028,6 +1058,16 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
     updateStorage();
 
     /* --- actions --- */
+    const connectionTestButton = q("#ns-connection-test");
+    if (connectionTestButton) {
+      connectionTestButton.addEventListener("click", function () {
+        if (window.NovaConnectionTest && typeof window.NovaConnectionTest.open === "function") {
+          window.NovaConnectionTest.open();
+        } else {
+          msg("Connection Test did not load. Reload Nova and try again.");
+        }
+      });
+    }
     q("#ns-clear-history").addEventListener("click", function () {
       clearHistory(); updateStorage(); msg("History cleared");
     });
