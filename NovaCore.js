@@ -328,7 +328,9 @@ function stopMatrix(){
 }
 
 const NOVA_EASTER_EGG_QUERIES = new Set([
-  "67", "rickroll", "matrix", "pong", "nyancat", "flip", "doge", "credits"
+  "67", "rickroll", "matrix", "pong", "nyancat", "flip", "doge", "credits",
+  "the cake is a lie", "42", "konami", "hello world", "sudo rm -rf /",
+  "easter egg", "nova dash"
 ]);
 
 // --- Easter Eggs dispatcher ---
@@ -345,6 +347,86 @@ function checkEasterEggs(input){
   }
 
   if (!lower) return false;
+
+  if (lower === "the cake is a lie") {
+    if (window.NovaOffline && typeof window.NovaOffline.showEasterEgg === "function") {
+      window.NovaOffline.showEasterEgg(
+        "The cake is a lie",
+        "The cake is a lie. Its current location remains classified.",
+        "🍰",
+        "cake"
+      );
+    } else {
+      alert("The cake is a lie.");
+    }
+    return true;
+  }
+
+  if (lower === "42") {
+    if (window.NovaOffline && typeof window.NovaOffline.showEasterEgg === "function") {
+      window.NovaOffline.showEasterEgg(
+        "The answer",
+        "42 — the answer to life, the universe, and everything. The real question is what Nova should search next.",
+        "🌌"
+      );
+    }
+    return true;
+  }
+
+  if (lower === "konami") {
+    if (window.NovaOffline && typeof window.NovaOffline.showEasterEgg === "function") {
+      window.NovaOffline.showEasterEgg(
+        "You're close",
+        "Enter ↑ ↑ ↓ ↓ ← → ← → B A, then Enter, to unlock a secret Nova achievement.",
+        "🎮"
+      );
+    }
+    return true;
+  }
+
+  if (lower === "hello world") {
+    const greetings = [
+      "Hello, human. All systems are 73% enthusiastic.",
+      "Greetings from the machine that definitely does not need coffee.",
+      "Hello, world! Nova is listening. Not literally — this is not a microphone.",
+      "Hi there. I checked the internet for a better greeting, but you already found me."
+    ];
+    const greeting = greetings[Math.floor(Math.random() * greetings.length)];
+    if (window.NovaOffline && typeof window.NovaOffline.showEasterEgg === "function") {
+      window.NovaOffline.showEasterEgg("Hello, world!", greeting, "🤖");
+    }
+    return true;
+  }
+
+  if (lower === "sudo rm -rf /") {
+    if (window.NovaOffline && typeof window.NovaOffline.showEasterEgg === "function") {
+      window.NovaOffline.showEasterEgg(
+        "Nice try",
+        "Nice try. Nova's files are staying right where they are.",
+        "🛡️"
+      );
+    }
+    return true;
+  }
+
+  if (lower === "easter egg") {
+    if (window.NovaOffline && typeof window.NovaOffline.showEasterEgg === "function") {
+      window.NovaOffline.showEasterEgg(
+        "No Easter eggs here",
+        "There are absolutely no Easter eggs here. Please ignore the suspiciously egg-shaped clue.",
+        "🥚"
+      );
+    }
+    return true;
+  }
+
+  if (lower === "nova dash") {
+    if (window.NovaOffline && typeof window.NovaOffline.openGame === "function") {
+      window.NovaOffline.openGame();
+    }
+    return true;
+  }
+
   if (lower === "67" || lower === "rickroll"){ rickrollContainer.style.display = "block"; window.scrollTo({top:0,behavior:"smooth"}); return true; }
   if (lower === "matrix"){ startMatrix(); return true; }
   if (lower === "pong"){ window.open("https://sethclydesdale.github.io/browser-pong/","_blank"); return true; }
@@ -918,6 +1000,9 @@ async function loadWebResults(query, page = 1){
     webSearchContainer.classList.add("visible");
     webSearchResults.setAttribute("data-query", query);
     webSearchResults.setAttribute("data-page", String(safePage));
+    if (search.failed && window.NovaOffline && typeof window.NovaOffline.reportSearchFailure === "function") {
+      window.NovaOffline.reportSearchFailure(search.error);
+    }
   }
 }
 
