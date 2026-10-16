@@ -471,7 +471,12 @@ async function fetchWebSearchText(url, headers, stage) {
     const response = await fetch(url, options);
     if (!response.ok) {
       const statusText = response.statusText ? " " + response.statusText : "";
-      const error = new Error("HTTP " + response.status + statusText);
+      const proxySource = response.headers.get("X-Cors-Source");
+      const proxyCode = response.headers.get("X-Cors-Error");
+      let message = "HTTP " + response.status + statusText;
+      if (proxySource) message += " [" + proxySource + "]";
+      if (proxyCode) message += " [" + proxyCode + "]";
+      const error = new Error(message);
       error.status = response.status;
       error.stage = stage;
       throw error;
@@ -511,8 +516,7 @@ async function searchWebBatch(query, batchIndex){
   const bucket = getWebSearchBucket(query);
   if (bucket.batches.has(batchIndex)) return bucket.batches.get(batchIndex);
 
-  // Fetch a fresh provider page for each Nova page instead of assuming
-  // DuckDuckGo returns 30 results in one HTML response.
+  // Each Nova page maps to its own provider offset (0, 10, 20, ...).
   const offset = batchIndex * WEB_PROVIDER_PAGE_SIZE;
   const params = new URLSearchParams();
   params.set("q", query);
@@ -521,40 +525,54 @@ async function searchWebBatch(query, batchIndex){
 
   const target = "https://html.duckduckgo.com/html/?" + params.toString();
   const readerUrl = "https://r.jina.ai/" + target;
-  let body = "";
+
+  // Jina Reader has started returning HTTP 403 for some users. Try a
+  // browser-readable CORS proxy for DuckDuckGo HTML first, then use Jina
+  // as a fallback. No API key is placed in this public client-side code.
+  const providers = [
+    {
+      name: "DuckDuckGo via CORS proxy",
+      url: "https://proxy.cors.dev/" + target,
+      headers: { "Accept": "text/html" },
+      parse: body => parseWebSearchHTML(body)
+    },
+    {
+      name: "Jina Reader",
+      url: readerUrl,
+      headers: { "Accept": "text/plain" },
+      parse: body => {
+        let parsed = parseWebSearchHTML(body);
+        if (!parsed.length) parsed = parseWebSearchResults(body, WEB_PROVIDER_PAGE_SIZE);
+        return parsed;
+      }
+    }
+  ];
+
+  const errors = [];
   let results = [];
 
-  try {
-    body = await fetchWebSearchText(
-      readerUrl,
-      { "Accept": "text/plain", "X-Respond-With": "html" },
-      "HTML response"
-    );
-    results = parseWebSearchHTML(body);
-    if (!results.length) results = parseWebSearchResults(body, WEB_PROVIDER_PAGE_SIZE);
-
-    // Retry in Markdown mode if the HTML response could not be parsed.
-    if (!results.length) {
-      body = await fetchWebSearchText(
-        readerUrl,
-        { "Accept": "text/plain" },
-        "Markdown retry"
-      );
-      results = parseWebSearchResults(body, WEB_PROVIDER_PAGE_SIZE);
-    }
-  } catch (error) {
-    console.warn("Nova web search HTML fetch failed; trying Markdown:", error);
+  for (const provider of providers) {
     try {
-      body = await fetchWebSearchText(
-        readerUrl,
-        { "Accept": "text/plain" },
-        "Markdown fallback"
-      );
-      results = parseWebSearchResults(body, WEB_PROVIDER_PAGE_SIZE);
-    } catch (fallbackError) {
-      console.warn("Nova web search failed:", fallbackError);
-      throw fallbackError;
+      const body = await fetchWebSearchText(provider.url, provider.headers, provider.name);
+      const parsed = provider.parse(body);
+      if (parsed.length) {
+        results = parsed;
+        console.info("[Nova web search] " + provider.name + " returned " + parsed.length + " results.");
+        break;
+      }
+      errors.push(provider.name + ": response had no parseable results");
+      console.warn("[Nova web search] " + provider.name + " returned content but no results could be parsed.");
+    } catch (error) {
+      const detail = error && error.message ? error.message : String(error);
+      errors.push(provider.name + ": " + detail);
+      console.warn("[Nova web search] " + provider.name + " failed; trying the next provider.");
     }
+  }
+
+  if (!results.length) {
+    const error = new Error(errors.join(" | ") || "No search provider returned parseable results");
+    error.stage = "All search providers";
+    throw error;
   }
 
   const unique = [];
