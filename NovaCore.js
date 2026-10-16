@@ -457,22 +457,23 @@ function getWebSearchBucket(query){
   return value;
 }
 
-const NOVA_WEB_FETCH_TIMEOUT_MS = 10000;
+const NOVA_WEB_FETCH_TIMEOUT_MS = 8000;
 
-async function fetchWebSearchText(url, headers, stage) {
+async function fetchWebSearchText(url, headers, stage, requestOptions = {}) {
   const controller = typeof AbortController === "function" ? new AbortController() : null;
   let timeoutId = null;
   let timedOut = false;
 
-  const options = { headers: headers || {} };
+  const options = Object.assign({ credentials: "omit" }, requestOptions || {});
+  options.headers = Object.assign({}, (requestOptions && requestOptions.headers) || {}, headers || {});
   if (controller) options.signal = controller.signal;
 
   const request = (async () => {
     const response = await fetch(url, options);
     if (!response.ok) {
       const statusText = response.statusText ? " " + response.statusText : "";
-      const proxySource = response.headers.get("X-Cors-Source");
-      const proxyCode = response.headers.get("X-Cors-Error");
+      const proxySource = response.headers && response.headers.get ? response.headers.get("X-Cors-Source") : "";
+      const proxyCode = response.headers && response.headers.get ? response.headers.get("X-Cors-Error") : "";
       let message = "HTTP " + response.status + statusText;
       if (proxySource) message += " [" + proxySource + "]";
       if (proxyCode) message += " [" + proxyCode + "]";
@@ -512,39 +513,79 @@ async function fetchWebSearchText(url, headers, stage) {
   }
 }
 
+function parseStructuredSearchItems(items, limit = WEB_PROVIDER_PAGE_SIZE) {
+  if (!Array.isArray(items)) return [];
+  const parsed = [];
+  const seen = new Set();
+
+  for (const item of items) {
+    if (!item || typeof item !== "object") continue;
+    const rawUrl = String(item.url || item.link || item.href || "").trim();
+    if (!/^https?:\/\//i.test(rawUrl)) continue;
+
+    const url = normalizeWebUrl(rawUrl);
+    if (!url || seen.has(url)) continue;
+
+    let hostname = "";
+    try { hostname = new URL(url).hostname; } catch { continue; }
+    if (!hostname || /^(localhost|127\.0\.0\.1)$/i.test(hostname)) continue;
+
+    const title = String(item.title || item.h1 || item.name || hostname).replace(/\s+/g, " ").trim();
+    if (!title) continue;
+    const snippet = String(item.description || item.snippet || item.summary || item.h1 || "")
+      .replace(/\s+/g, " ").trim();
+
+    seen.add(url);
+    parsed.push({ title, url, snippet });
+    if (parsed.length >= limit) break;
+  }
+
+  return parsed;
+}
+
+function parseTiagoSearchResults(body, limit = WEB_PROVIDER_PAGE_SIZE) {
+  let data;
+  try { data = JSON.parse(String(body || "")); } catch { return []; }
+  const items = data && data.results && data.results.web && data.results.web.results;
+  return parseStructuredSearchItems(items, limit);
+}
+
+function parseCl0qSearchResults(body, limit = WEB_PROVIDER_PAGE_SIZE) {
+  let data;
+  try { data = JSON.parse(String(body || "")); } catch { return []; }
+  return parseStructuredSearchItems(data && data.results, limit);
+}
+
 async function searchWebBatch(query, batchIndex){
   const bucket = getWebSearchBucket(query);
   if (bucket.batches.has(batchIndex)) return bucket.batches.get(batchIndex);
 
-  // Each Nova page maps to its own provider offset (0, 10, 20, ...).
   const offset = batchIndex * WEB_PROVIDER_PAGE_SIZE;
   const params = new URLSearchParams();
   params.set("q", query);
-  params.set("kl", "us-en");
-  if (offset > 0) params.set("s", String(offset));
+  params.set("limit", String(WEB_PROVIDER_PAGE_SIZE));
+  params.set("offset", String(offset));
+  params.set("lang", "en");
 
-  const target = "https://html.duckduckgo.com/html/?" + params.toString();
-  const readerUrl = "https://r.jina.ai/" + target;
-
-  // Jina Reader has started returning HTTP 403 for some users. Try a
-  // browser-readable CORS proxy for DuckDuckGo HTML first, then use Jina
-  // as a fallback. No API key is placed in this public client-side code.
+  // The previous providers are currently failing: DuckDuckGo through the public
+  // proxy times out and Jina Reader returns 403. Use documented JSON search APIs
+  // that support direct browser requests, rather than retrying the same path.
+  const cl0qUrl = "https://cl0q.com/search?" + params.toString();
+  const paramsForTiago = { query: query, type: "web", page: batchIndex };
   const providers = [
     {
-      name: "DuckDuckGo via CORS proxy",
-      url: "https://proxy.cors.dev/" + target,
-      headers: { "Accept": "text/html" },
-      parse: body => parseWebSearchHTML(body)
+      name: "Tiago Search API",
+      url: "https://search.tiago.zip/api",
+      headers: { "Accept": "application/json", "Content-Type": "application/json" },
+      options: { method: "POST", body: JSON.stringify(paramsForTiago) },
+      parse: body => parseTiagoSearchResults(body, WEB_PROVIDER_PAGE_SIZE)
     },
     {
-      name: "Jina Reader",
-      url: readerUrl,
-      headers: { "Accept": "text/plain" },
-      parse: body => {
-        let parsed = parseWebSearchHTML(body);
-        if (!parsed.length) parsed = parseWebSearchResults(body, WEB_PROVIDER_PAGE_SIZE);
-        return parsed;
-      }
+      name: "cl0q Search API",
+      url: cl0qUrl,
+      headers: { "Accept": "application/json" },
+      options: { method: "GET" },
+      parse: body => parseCl0qSearchResults(body, WEB_PROVIDER_PAGE_SIZE)
     }
   ];
 
@@ -553,15 +594,20 @@ async function searchWebBatch(query, batchIndex){
 
   for (const provider of providers) {
     try {
-      const body = await fetchWebSearchText(provider.url, provider.headers, provider.name);
+      const body = await fetchWebSearchText(
+        provider.url,
+        provider.headers,
+        provider.name,
+        provider.options
+      );
       const parsed = provider.parse(body);
       if (parsed.length) {
         results = parsed;
         console.info("[Nova web search] " + provider.name + " returned " + parsed.length + " results.");
         break;
       }
-      errors.push(provider.name + ": response had no parseable results");
-      console.warn("[Nova web search] " + provider.name + " returned content but no results could be parsed.");
+      errors.push(provider.name + ": response had no parseable web results");
+      console.warn("[Nova web search] " + provider.name + " returned content but no parseable results.");
     } catch (error) {
       const detail = error && error.message ? error.message : String(error);
       errors.push(provider.name + ": " + detail);
