@@ -352,8 +352,8 @@ function checkEasterEggs(input){
     if (window.NovaOffline && typeof window.NovaOffline.showEasterEgg === "function") {
       window.NovaOffline.showEasterEgg(
         "The cake is a lie",
-        "The cake is a lie. Its current location remains classified.",
-        "🍰",
+        "The cake is a lie.",
+        ":3 🍰",
         "cake"
       );
     } else {
@@ -366,7 +366,7 @@ function checkEasterEggs(input){
     if (window.NovaOffline && typeof window.NovaOffline.showEasterEgg === "function") {
       window.NovaOffline.showEasterEgg(
         "The answer",
-        "42 — the answer to life, the universe, and everything. The real question is what Nova should search next.",
+        "42 — the answer to life, the universe, and everything.",
         "🌌"
       );
     }
@@ -386,14 +386,14 @@ function checkEasterEggs(input){
 
   if (lower === "hello world") {
     const greetings = [
-      "Hello, human. All systems are 73% enthusiastic.",
-      "Greetings from the machine that definitely does not need coffee.",
-      "Hello, world! Nova is listening. Not literally — this is not a microphone.",
-      "Hi there. I checked the internet for a better greeting, but you already found me."
+      "Hello user! this is a note to all the devs out there :3",
+      "Hello, World! 0 errors, 0 warnings, 1 hidden message",
+      "Hello, world! we are listening.",
+      "Hi there."
     ];
     const greeting = greetings[Math.floor(Math.random() * greetings.length)];
     if (window.NovaOffline && typeof window.NovaOffline.showEasterEgg === "function") {
-      window.NovaOffline.showEasterEgg("Hello, world!", greeting, "🤖");
+      window.NovaOffline.showEasterEgg("Hello, world!", greeting, ":3");
     }
     return true;
   }
@@ -402,8 +402,8 @@ function checkEasterEggs(input){
     if (window.NovaOffline && typeof window.NovaOffline.showEasterEgg === "function") {
       window.NovaOffline.showEasterEgg(
         "Nice try",
-        "Nice try. Nova's files are staying right where they are.",
-        "🛡️"
+        "Nice try buddy. Nova's files are staying right where they are.",
+        ":3"
       );
     }
     return true;
@@ -414,7 +414,7 @@ function checkEasterEggs(input){
       window.NovaOffline.showEasterEgg(
         "No Easter eggs here",
         "There are absolutely no Easter eggs here. Please ignore the suspiciously egg-shaped clue.",
-        "🥚"
+        ":3"
       );
     }
     return true;
@@ -427,7 +427,7 @@ function checkEasterEggs(input){
     return true;
   }
 
-  if (lower === "67" || lower === "rickroll"){ rickrollContainer.style.display = "block"; window.scrollTo({top:0,behavior:"smooth"}); return true; }
+  if (lower === "tung tung tung sahur" || lower === "rickroll"){ rickrollContainer.style.display = "block"; window.scrollTo({top:0,behavior:"smooth"}); return true; }
   if (lower === "matrix"){ startMatrix(); return true; }
   if (lower === "pong"){ window.open("https://sethclydesdale.github.io/browser-pong/","_blank"); return true; }
   if (lower === "nyancat"){ window.open("https://www.nyan.cat","_blank"); return true; }
