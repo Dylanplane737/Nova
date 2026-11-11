@@ -1,7 +1,7 @@
 /* Nova App Shell Cache — keeps the app and local game available offline */
 "use strict";
 
-const CACHE_NAME = "nova-shell-v2";
+const CACHE_NAME = "nova-shell-v3";
 const SHELL_FILES = [
   "index.html",
   "Nova.css",
@@ -9,6 +9,7 @@ const SHELL_FILES = [
   "NovaAudio.js",
   "NovaTimeline.js",
   "Settings.js",
+  "NovaAdvancedAppearance.js",
   "NovaTranslate.js",
   "NovaTabs.js",
   "NovaResearch.js",
