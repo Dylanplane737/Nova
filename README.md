@@ -24,6 +24,7 @@ No download needed — Nova runs online through GitHub Pages.
 - **Citation tools** for creating MLA citations, saving them locally, and exporting a Works Cited list.
 - **Home and bookmarks** for shortcuts and saved websites.
 - **Customizable appearance** with themes, accent colors, font sizing, custom backgrounds, and **Nova Lite Mode** to disable blur, shadows, and heavy visual effects on lower-spec devices.
+- **Advanced Appearance** for custom content colors, corner roundness, blur, shadows, and reusable theme profiles.
 - **Connection Test** to check the browser connection signal, Wikipedia API reachability, and the Tiago and cl0q search providers, with clear results when browser security prevents verification.
 - **Search history and backups**, managed from Settings.
 - **Easter eggs**, including the Rickroll, Matrix, Flip, Portal-inspired cake joke, 42 reference, fake command warning, random greetings, and Konami-code achievement.
