@@ -77,9 +77,11 @@
     }
   }
 
-  function currentTheme() {
-    const settings = window.NovaSettings && window.NovaSettings.loadSettings
-      ? window.NovaSettings.loadSettings() : { theme: "classic", smartUI: true };
+  function currentTheme(settingsOverride) {
+    const settings = settingsOverride && typeof settingsOverride === "object"
+      ? settingsOverride
+      : (window.NovaSettings && window.NovaSettings.loadSettings
+        ? window.NovaSettings.loadSettings() : { theme: "classic", smartUI: true });
     return { settings: settings, colors: THEME_COLORS[settings.theme] || THEME_COLORS.classic };
   }
 
@@ -200,9 +202,9 @@
     document.head.appendChild(style);
   }
 
-  function applyConfig(config) {
+  function applyConfig(config, settingsOverride) {
     const cfg = normalizeConfig(config);
-    const theme = currentTheme();
+    const theme = currentTheme(settingsOverride);
     const colors = theme.colors;
     const anyCustom = COLOR_KEYS.some(function (key) { return !!cfg[key]; }) ||
       cfg.radius !== DEFAULTS.radius || cfg.blur !== DEFAULTS.blur || cfg.shadow !== DEFAULTS.shadow;
@@ -489,7 +491,7 @@
   window.NovaAdvancedAppearance = {
     open: open,
     close: cancel,
-    apply: function () { applyConfig(readConfig()); }
+    apply: function (settings) { applyConfig(readConfig(), settings); }
   };
   document.addEventListener("keydown", closeOnEscape);
 })();
