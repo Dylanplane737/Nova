@@ -48,7 +48,7 @@ You can try opening `index.html` in your browser. Some online requests may not w
 
 ## 🔒 Local Data
 
-Settings, bookmarks, search history, and saved citations are stored in your browser on your device. They are not automatically synced between browsers or devices. Export a backup from Settings if you need to move or keep a copy of your data.
+Settings, bookmarks, search history, saved citations, and advanced appearance profiles are stored in your browser on your device. They are not automatically synced between browsers or devices. Export a backup from Settings if you need to move or keep a copy of your data.
 
 Nova sends web search queries to external search providers. It tries search.tiago.zip first and uses cl0q.com if the first provider fails or returns no parseable results. The provider used for a search receives the query needed to return results. These independent services may have different coverage or availability. Avoid entering sensitive information into web searches.
 
