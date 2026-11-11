@@ -611,7 +611,7 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
     document.documentElement.classList.toggle("nova-smart-ui",!!s.smartUI);
     if(s.background)updateWallpaperMeta(s);
     if (window.NovaAdvancedAppearance && typeof window.NovaAdvancedAppearance.apply === "function") {
-      window.NovaAdvancedAppearance.apply();
+      window.NovaAdvancedAppearance.apply(s);
     }
   }
 
