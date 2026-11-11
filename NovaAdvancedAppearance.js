@@ -99,8 +99,8 @@
   }
 
   function rgbToHex(value, fallback) {
-    const match = String(value || "").match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
-    if (!match) return fallback;
+    const match = String(value || "").match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([0-9.]+))?\s*\)/i);
+    if (!match || (match[4] !== undefined && Number(match[4]) < 0.85)) return fallback;
     return "#" + [match[1], match[2], match[3]].map(function (part) {
       return Number(part).toString(16).padStart(2, "0");
     }).join("");
@@ -173,7 +173,7 @@
       ".nva-profile-box{padding:13px;border:1px solid var(--ns-border,#e3eaf2);border-radius:14px;background:var(--ns-surface,#f4f7fb)}",
       ".nva-profile-box p{margin:0 0 10px;color:var(--ns-sub,#687f8d);font-size:11px}",
       ".nva-profile-controls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}",
-      ".nva-profile-controls input,.nva-profile-controls select{width:100%;min-width:0;height:38px;margin:0;padding:0 10px;border:1px solid var(--ns-border-strong,#c9d7e3);border-radius:9px;background:var(--ns-bg,#fff);color:var(--ns-text,#122c40);font:12px inherit}",
+      ".nva-profile-controls input,.nva-profile-controls select{width:100%;min-width:0;height:38px;margin:0;padding:0 10px;border:1px solid var(--ns-border-strong,#c9d7e3);border-radius:9px;background:var(--ns-bg,#fff);color:var(--ns-text,#122c40);font:12px ui-sans-serif,system-ui,sans-serif}",
       ".nva-profile-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}",
       ".nva-btn{min-height:36px;margin:0;padding:8px 12px;border:1px solid var(--ns-border,#dce6ed);border-radius:9px;background:var(--ns-bg,#fff);color:var(--ns-text,#122c40);font:600 11px ui-sans-serif,system-ui,sans-serif;cursor:pointer}",
       ".nva-btn:hover{border-color:var(--nova-accent,#0f75a8);background:var(--ns-hover,#ebf2f9)}",
@@ -352,6 +352,7 @@
     if (!panel) return;
     profiles = readProfiles();
     const select = panel.querySelector("#nva-profile-select");
+    const previous = select.value;
     select.innerHTML = "";
     if (!profiles.length) {
       const option = document.createElement("option");
@@ -365,6 +366,7 @@
         option.textContent = item.name;
         select.appendChild(option);
       });
+      select.value = profiles[Number(previous)] ? previous : "0";
     }
     panel.querySelector("#nva-profile-load").disabled = profiles.length === 0;
     panel.querySelector("#nva-profile-delete").disabled = profiles.length === 0;
