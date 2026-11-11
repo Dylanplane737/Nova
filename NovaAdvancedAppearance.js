@@ -19,7 +19,8 @@
     linkColor: null,
     radius: 12,
     blur: 0,
-    shadow: 25
+    shadow: 25,
+    surfaceOpacity: 100
   };
 
   const THEME_COLORS = {
@@ -52,6 +53,7 @@
     result.radius = Math.max(0, Math.min(28, Number.isFinite(Number(value.radius)) ? Math.round(Number(value.radius)) : DEFAULTS.radius));
     result.blur = Math.max(0, Math.min(20, Number.isFinite(Number(value.blur)) ? Math.round(Number(value.blur)) : DEFAULTS.blur));
     result.shadow = Math.max(0, Math.min(50, Number.isFinite(Number(value.shadow)) ? Math.round(Number(value.shadow)) : DEFAULTS.shadow));
+    result.surfaceOpacity = Math.max(40, Math.min(100, Number.isFinite(Number(value.surfaceOpacity)) ? Math.round(Number(value.surfaceOpacity)) : DEFAULTS.surfaceOpacity));
     return result;
   }
 
@@ -193,7 +195,8 @@
       "html.nova-advanced-appearance #webSearchContainer,html.nova-advanced-appearance #wikiSummary,html.nova-advanced-appearance #relatedMedia,html.nova-advanced-appearance #timelineContainer{background:var(--nva-surface)!important;color:var(--nva-text,inherit)!important;border:1px solid var(--nva-border)!important;border-radius:var(--nva-radius)!important;box-shadow:var(--nva-shadow)!important;-webkit-backdrop-filter:blur(var(--nva-blur))!important;backdrop-filter:blur(var(--nva-blur))!important}",
       "html.nova-advanced-appearance #urlInput{background:var(--nva-input-bg)!important;color:var(--nva-input-text)!important;border:1px solid var(--nva-border)!important;border-radius:var(--nva-radius)!important}",
       "html.nova-advanced-appearance #urlInput::placeholder{color:var(--nva-muted)!important;opacity:.8}",
-      "html.nova-advanced-appearance #webSearchContainer .web-result{border-color:var(--nva-border)!important}",
+      "html.nova-advanced-appearance #webSearchContainer .web-result{border-color:var(--nva-border)!important;border-radius:var(--nva-radius)!important}",
+      "html.nova-advanced-appearance .timeline-item,html.nova-advanced-appearance .nova-shortcut-card,html.nova-advanced-appearance .nova-home-bookmark,html.nova-advanced-appearance .nova-bookmark-row{border-radius:var(--nva-radius)!important}",
       "html.nova-advanced-appearance #webSearchContainer a{color:var(--nva-link)!important}",
       "html.nova-advanced-appearance .web-search-note,html.nova-advanced-appearance .web-result-url,html.nova-advanced-appearance .timeline-count{color:var(--nva-muted)!important}",
       "html.nova-advanced-appearance .media-section{border:1px solid var(--nva-border)!important;border-radius:var(--nva-radius)!important}",
@@ -202,12 +205,19 @@
     document.head.appendChild(style);
   }
 
+  function hexWithAlpha(hex, opacity) {
+    const match = String(hex || "").match(/^#([0-9a-f]{6})$/i);
+    if (!match) return "rgba(16,32,43," + opacity + ")";
+    const value = parseInt(match[1], 16);
+    return "rgba(" + ((value >> 16) & 255) + "," + ((value >> 8) & 255) + "," + (value & 255) + "," + opacity + ")";
+  }
+
   function applyConfig(config, settingsOverride) {
     const cfg = normalizeConfig(config);
     const theme = currentTheme(settingsOverride);
     const colors = theme.colors;
     const anyCustom = COLOR_KEYS.some(function (key) { return !!cfg[key]; }) ||
-      cfg.radius !== DEFAULTS.radius || cfg.blur !== DEFAULTS.blur || cfg.shadow !== DEFAULTS.shadow;
+      cfg.radius !== DEFAULTS.radius || cfg.blur !== DEFAULTS.blur || cfg.shadow !== DEFAULTS.shadow || cfg.surfaceOpacity !== DEFAULTS.surfaceOpacity;
     const root = document.documentElement;
     const htmlStyle = root.style;
 
@@ -230,7 +240,7 @@
 
     root.classList.add("nova-advanced-appearance");
     htmlStyle.setProperty("--nva-page-bg", cfg.pageBg || colors.bg);
-    htmlStyle.setProperty("--nva-surface", cfg.surface || colors.surface);
+    htmlStyle.setProperty("--nva-surface", hexWithAlpha(cfg.surface || colors.surface, (cfg.surfaceOpacity / 100).toFixed(2)));
     htmlStyle.setProperty("--nva-text", cfg.text || basePageText(theme.settings, colors));
     htmlStyle.setProperty("--nva-muted", cfg.muted || colors.muted);
     htmlStyle.setProperty("--nva-border", cfg.border || colors.border);
@@ -288,6 +298,7 @@
         '<div class="nva-section">Shape and effects</div>' +
         '<div class="nva-slider-group">' +
           makeSlider("radius", "Corner roundness", 0, 28, "px", "0 = square corners · 28 = very rounded") +
+          makeSlider("surfaceOpacity", "Surface opacity", 40, 100, "%", "Lower opacity lets the page background show through") +
           makeSlider("blur", "Background blur", 0, 20, "px", "Controls blur behind content surfaces") +
           makeSlider("shadow", "Shadow strength", 0, 50, "%", "0 removes shadows · 50 gives stronger depth") +
         '</div>' +
@@ -332,11 +343,11 @@
 
   function syncOutputs() {
     if (!panel || !draft) return;
-    ["radius", "blur", "shadow"].forEach(function (key) {
+    ["radius", "surfaceOpacity", "blur", "shadow"].forEach(function (key) {
       const input = panel.querySelector('[data-range="' + key + '"]');
       const output = panel.querySelector('[data-output="' + key + '"]');
       if (input) input.value = draft[key];
-      if (output) output.textContent = draft[key] + (key === "shadow" ? "%" : "px");
+      if (output) output.textContent = draft[key] + (key === "shadow" || key === "surfaceOpacity" ? "%" : "px");
     });
   }
 
