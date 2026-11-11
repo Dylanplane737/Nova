@@ -1,7 +1,7 @@
 /* Nova App Shell Cache — keeps the app and local game available offline */
 "use strict";
 
-const CACHE_NAME = "nova-shell-v4";
+const CACHE_NAME = "nova-shell-v5";
 const SHELL_FILES = [
   "index.html",
   "Nova.css",
