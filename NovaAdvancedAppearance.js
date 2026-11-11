@@ -368,7 +368,7 @@
         option.textContent = item.name;
         select.appendChild(option);
       });
-      select.value = profiles[Number(previous)] ? previous : "0";
+      select.value = previous !== "" && profiles[Number(previous)] ? previous : "0";
     }
     panel.querySelector("#nva-profile-load").disabled = profiles.length === 0;
     panel.querySelector("#nva-profile-delete").disabled = profiles.length === 0;
