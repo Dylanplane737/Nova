@@ -610,6 +610,9 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
     if (tabs) tabs.style.display = s.showTabs ? "" : "none";
     document.documentElement.classList.toggle("nova-smart-ui",!!s.smartUI);
     if(s.background)updateWallpaperMeta(s);
+    if (window.NovaAdvancedAppearance && typeof window.NovaAdvancedAppearance.apply === "function") {
+      window.NovaAdvancedAppearance.apply();
+    }
   }
 
   /* ---------- data helpers (unchanged) ---------- */
@@ -638,11 +641,17 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
   }
 
   function exportBackup() {
+    let advancedAppearance = null;
+    let advancedAppearanceProfiles = [];
+    try { advancedAppearance = JSON.parse(localStorage.getItem("novaAdvancedAppearanceV1") || "null"); } catch (err) {}
+    try { advancedAppearanceProfiles = JSON.parse(localStorage.getItem("novaAdvancedAppearanceProfilesV1") || "[]"); } catch (err) {}
     const data = {
-      novaBackupVersion: 3,
+      novaBackupVersion: 4,
       exportedAt: new Date().toISOString(),
       settings: loadSettings(),
-      history: JSON.parse(localStorage.getItem("nova_history") || "[]")
+      history: JSON.parse(localStorage.getItem("nova_history") || "[]"),
+      advancedAppearance: advancedAppearance,
+      advancedAppearanceProfiles: Array.isArray(advancedAppearanceProfiles) ? advancedAppearanceProfiles : []
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -678,6 +687,12 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
         });
 
         if (Array.isArray(data.history)) localStorage.setItem("nova_history", JSON.stringify(data.history));
+        if (data.advancedAppearance && typeof data.advancedAppearance === "object" && !Array.isArray(data.advancedAppearance)) {
+          localStorage.setItem("novaAdvancedAppearanceV1", JSON.stringify(data.advancedAppearance));
+        }
+        if (Array.isArray(data.advancedAppearanceProfiles)) {
+          localStorage.setItem("novaAdvancedAppearanceProfilesV1", JSON.stringify(data.advancedAppearanceProfiles.slice(0, 20)));
+        }
 
         notify("Backup imported — reloading…");
         setTimeout(function () { location.reload(); }, 800);
@@ -771,6 +786,12 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
       ${rowHTML("ns-motion", "Animations & effects", "Transitions across the interface")}
       ${rowHTML("ns-contrast", "High contrast", "Bolder borders for readability")}
       ${rowHTML("ns-lite-mode", "Nova Lite Mode", "Remove blur and heavy visual effects for faster performance")}
+    </div>
+
+    <div class="ns-section-title">${I.spark} Advanced customization</div>
+    <div class="ns-group" style="padding:12px 14px">
+      <p class="ns-note">For users who want more control over Nova's colors, shapes, and visual effects.</p>
+      <button type="button" class="ns-btn block" id="ns-advanced-appearance">${I.sliders} Open Advanced Appearance</button>
     </div>
 
     <div class="ns-section-title">${I.search} Search &amp; behavior</div>
@@ -1065,6 +1086,16 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
           window.NovaConnectionTest.open();
         } else {
           msg("Connection Test did not load. Reload Nova and try again.");
+        }
+      });
+    }
+    const advancedAppearanceButton = q("#ns-advanced-appearance");
+    if (advancedAppearanceButton) {
+      advancedAppearanceButton.addEventListener("click", function () {
+        if (window.NovaAdvancedAppearance && typeof window.NovaAdvancedAppearance.open === "function") {
+          window.NovaAdvancedAppearance.open();
+        } else {
+          msg("Advanced Appearance did not load. Reload Nova and try again.");
         }
       });
     }
