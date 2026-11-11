@@ -781,17 +781,17 @@ html.nova-high-contrast .ns-group,html.nova-high-contrast .ns-card{border-width:
       </span>
     </div>
 
+    <div class="ns-section-title">${I.spark} Advanced customization</div>
+    <div class="ns-group" style="padding:12px 14px">
+      <p class="ns-note">For users who want more control over Nova's colors, shapes, and visual effects.</p>
+      <button type="button" class="ns-btn block" id="ns-advanced-appearance">${I.sliders} Open Advanced Appearance</button>
+    </div>
+
     <div class="ns-group" style="margin-top:9px">
       ${rowHTML("ns-compact", "Compact mode", "Tighter spacing and smaller media")}
       ${rowHTML("ns-motion", "Animations & effects", "Transitions across the interface")}
       ${rowHTML("ns-contrast", "High contrast", "Bolder borders for readability")}
       ${rowHTML("ns-lite-mode", "Nova Lite Mode", "Remove blur and heavy visual effects for faster performance")}
-    </div>
-
-    <div class="ns-section-title">${I.spark} Advanced customization</div>
-    <div class="ns-group" style="padding:12px 14px">
-      <p class="ns-note">For users who want more control over Nova's colors, shapes, and visual effects.</p>
-      <button type="button" class="ns-btn block" id="ns-advanced-appearance">${I.sliders} Open Advanced Appearance</button>
     </div>
 
     <div class="ns-section-title">${I.search} Search &amp; behavior</div>
