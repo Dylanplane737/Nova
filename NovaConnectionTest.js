@@ -1,4 +1,4 @@
-/* Nova 26.3 — Connection Test */
+/* Nova 26.4.2 — Connection Test */
 (function () {
   "use strict";
 
@@ -132,7 +132,8 @@
     overlay.setAttribute("aria-hidden", "true");
   }
 
-  function statusText(state) {
+  function statusText(state, result) {
+    if (result && result.degraded) return "Unstable";
     return state === "pass" ? "Working" :
       state === "fail" ? "Failed" :
       state === "warn" ? "Could not verify" : "Testing";
@@ -222,6 +223,24 @@
     }
   }
 
+  async function requestCheckWithGatewayRetry(config) {
+    const first = await requestCheck(config);
+    if (!/^HTTP (502|503|504)\\b/.test(first.detail || "")) return first;
+
+    const second = await requestCheck(config);
+    if (second.state === "pass") {
+      return {
+        state: "warn",
+        degraded: true,
+        detail: "The provider recovered on retry after " + first.detail + ". This indicates an intermittent gateway error."
+      };
+    }
+    return {
+      state: "fail",
+      detail: "Initial attempt: " + first.detail + " Retry: " + second.detail
+    };
+  }
+
   function checks() {
     const online = navigator.onLine !== false;
     return [
@@ -249,7 +268,7 @@
       {
         title: "Tiago Search API",
         run: function () {
-          return requestCheck({
+          return requestCheckWithGatewayRetry({
             url: "https://search.tiago.zip/api",
             method: "POST",
             headers: { "Accept": "application/json", "Content-Type": "application/json" },
@@ -299,17 +318,20 @@
         result = { state: "warn", detail: error && error.message ? error.message : "This check could not complete." };
       }
       if (currentRun !== runId) return;
+      item.resultDegraded = result.degraded === true;
       item.view.row.dataset.state = result.state;
-      item.view.state.textContent = statusText(result.state);
+      item.view.state.textContent = statusText(result.state, result);
       item.view.detail.textContent = result.detail;
     }));
     if (currentRun !== runId) return;
     const results = rows.map(function (item) { return item.view.row.dataset.state; });
     const passed = results.filter(function (state) { return state === "pass"; }).length;
     const failed = results.filter(function (state) { return state === "fail"; }).length;
-    const unsure = results.filter(function (state) { return state === "warn"; }).length;
+    const unsure = rows.filter(function (item) { return item.view.row.dataset.state === "warn" && !item.resultDegraded; }).length;
+    const unstable = rows.filter(function (item) { return item.resultDegraded; }).length;
     const bits = [passed + " working"];
     if (failed) bits.push(failed + " failed");
+    if (unstable) bits.push(unstable + " unstable");
     if (unsure) bits.push(unsure + " could not be verified");
     parts.summary.textContent = "Test complete: " + bits.join(" · ") + ".";
     parts.rerun.disabled = false;
