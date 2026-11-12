@@ -225,7 +225,7 @@
 
   async function requestCheckWithGatewayRetry(config) {
     const first = await requestCheck(config);
-    if (!/^HTTP (502|503|504)\\b/.test(first.detail || "")) return first;
+    if (!/^HTTP (502|503|504)\b/.test(first.detail || "")) return first;
 
     const second = await requestCheck(config);
     if (second.state === "pass") {
